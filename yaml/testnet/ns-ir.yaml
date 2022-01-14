@@ -1,0 +1,18 @@
+codeFile: ../ns-ir.pact
+signers:
+  - public: [signingKey]
+data:
+  ns: "ir"
+  ir-admin:
+    keys:
+      - [key1]
+      - [key2]
+    pred: [pred]
+networkId: testnet04
+nonce: install namespace ir
+publicMeta:
+  chainId: ["chainId"]
+  sender: ["sender"]
+  gasLimit: 5000
+  gasPrice: 0.0000001
+  ttl: 600

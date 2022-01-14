@@ -1,0 +1,14 @@
+codeFile: ../ir-policy.pact
+signers:
+  - public: signingKey
+data:
+  ns: "ir"
+  upgrade: false
+networkId: testnet04
+nonce: "install ir.policy"
+publicMeta:
+  chainId: ["chainId"]
+  sender: ["sender"]
+  gasLimit: 15000
+  gasPrice: 0.0000001
+  ttl: 15000
