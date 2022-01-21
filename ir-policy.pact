@@ -160,7 +160,7 @@
             )
             (with-capability (INTERNAL)
               (map (credit-owner buyer share total-owned) owned)
-              (update-owner token recipient))
+              (update-owner token buyer))
             (coin.transfer-create buyer recipient recipient-guard balance)))))
   )
 
