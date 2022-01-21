@@ -1,4 +1,5 @@
 (namespace (read-msg 'ns))
+;; > 5 letters
 
 (module policy GOVERNANCE
 
@@ -20,6 +21,7 @@
 
   (defconst SHARE 0.1
     "Share divided amongst collection owners")
+  ;; maybe rename this ROYALTY?
 
   (defconst QUOTE "quote"
     @doc "Payload field for quote spec")
@@ -95,6 +97,7 @@
   (defun update-owner (token:object{token-info} owner:string)
     (require-capability (INTERNAL))
     (coin.details owner) ;; enforce coin account
+    ;; IR will make sure that buyers have k: accounts
     (update ir-tokens (at 'id token) { 'owner: owner})
     (emit-event (UPDATE_OWNER (at 'id token) owner))
   )
@@ -106,9 +109,13 @@
       amount:decimal
     )
     (enforce-ledger)
+    ;; enforce-ledger not needed here
     (enforce false "Burn prohibited")
   )
 
+    ;; code here taken below straight from fixed-quote policy
+  ;; make sure seller is kosher; if not, fails.
+  ;;
   (defun enforce-offer:bool
     ( token:object{token-info}
       seller:string
@@ -152,6 +159,7 @@
           }
           (let*
             ( (sale-price (* amount price))
+            ;; for IR amount = 1 always
               (owned (select ir-tokens
                 (and? (where 'owner (!= ""))
                       (where 'id (!= (at 'id token))))))
@@ -185,6 +193,7 @@
   )
 
   (defun enforce-crosschain:bool
+      ;; for now, this NFT stays on this chain.
     ( token:object{token-info}
       sender:string
       guard:guard

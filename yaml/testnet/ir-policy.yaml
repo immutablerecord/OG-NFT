@@ -2,7 +2,7 @@ codeFile: ../ir-policy.pact
 signers:
   - public: signingKey
 data:
-  ns: "ir"
+  ns: "imm-rec"
   upgrade: false
 networkId: testnet04
 nonce: "install ir.policy"
