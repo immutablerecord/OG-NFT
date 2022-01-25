@@ -1,7 +1,7 @@
-codeFile: ../ir-policy.pact
+codeFile: ../../ir-policy.pact
 signers:
   - public: 0f876ce9c4914d7e10387515283b12e6dc750c8bb1c20324445cc68b607961fa
-    public: 9b30a2b5946f3ab48e37b329061b288230bac32c208972f662c58567e66d2627
+  - public: 9b30a2b5946f3ab48e37b329061b288230bac32c208972f662c58567e66d2627
 data:
   ns: "imm-rec"
   upgrade: false

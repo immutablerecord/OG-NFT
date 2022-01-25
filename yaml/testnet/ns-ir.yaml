@@ -1,4 +1,4 @@
-codeFile: ../ns-ir.pact
+codeFile: ../../ns-ir.pact
 signers:
   - public: [signingKey]
 data:
