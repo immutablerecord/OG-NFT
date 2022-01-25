@@ -5,14 +5,12 @@ data:
   ns: "imm-rec"
   ir-admin:
     keys:
-      - [key1]
-      - [key2]
-      - [key3]
-    pred: [pred]
+      - 0f876ce9c4914d7e10387515283b12e6dc750c8bb1c20324445cc68b607961fa
+    pred: keys-all
 networkId: testnet04
-nonce: install namespace ir
+nonce: install namespace imm-rec
 publicMeta:
-  chainId: ["chainId"]
+  chainId: "0"
   sender: ["sender"]
   gasLimit: 5000
   gasPrice: 0.0000001
