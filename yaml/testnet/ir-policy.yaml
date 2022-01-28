@@ -4,9 +4,9 @@ signers:
   - public: 9b30a2b5946f3ab48e37b329061b288230bac32c208972f662c58567e66d2627
 data:
   ns: "imm-rec"
-  upgrade: false
+  upgrade: true
 networkId: testnet04
-nonce: "install imm-rec.policy"
+nonce: "upgrade imm-rec.policy"
 publicMeta:
   chainId: "0"
   sender: "k:9b30a2b5946f3ab48e37b329061b288230bac32c208972f662c58567e66d2627"
