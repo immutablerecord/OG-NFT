@@ -8,8 +8,8 @@
   (defcap GOVERNANCE ()
     (enforce-keyset 'ir-admin))
 
-  (implements kip.token-policy-v1_DRAFT4)
-  (use kip.token-policy-v1_DRAFT4 [token-info])
+  (implements kip.token-policy-v1)
+  (use kip.token-policy-v1 [token-info])
 
   (defschema ir-token
     id:string
@@ -203,7 +203,6 @@
     (enforce false "Transfer prohibited")
   )
 )
-
 
 (if (read-msg 'upgrade)
   ["upgrade complete"]
