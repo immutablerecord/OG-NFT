@@ -69,7 +69,7 @@
       (let* ( (weight (read-integer 'weight))
             )
         (enforce (> weight 0) "Invalid weight")
-        (enforce (= (at 'precision token) 1) "Invalid precision")
+        (enforce (= (at 'precision token) 0) "Invalid precision")
         (insert ir-tokens (at 'id token)
           { 'weight: weight, 'owner: "", 'id: (at 'id token) })
         true))
@@ -108,8 +108,6 @@
       account:string
       amount:decimal
     )
-    (enforce-ledger)
-    ;; enforce-ledger not needed here
     (enforce false "Burn prohibited")
   )
 
@@ -202,6 +200,23 @@
       amount:decimal )
     (enforce false "Transfer prohibited")
   )
+
+  (defun get-sales:list ()
+    (keys quotes))
+
+  (defun get-quote:object (sale-id:string)
+    { "sale-id": sale-id
+     ,"quote": (read quotes sale-id)
+    })
+
+  (defun get-quotes:list ()
+    (map (get-quote) (get-sales)))
+
+  (defun get-ir-token:object (id:string)
+    (read ir-tokens id))
+
+  (defun get-ir-tokens:list ()
+    (map (get-ir-token) (keys ir-tokens)))
 )
 
 (if (read-msg 'upgrade)

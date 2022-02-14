@@ -85,7 +85,7 @@
 (expect "Create token 1 succeeds"
   "Write succeeded"
   (create-token "ir-token-1"
-    1 (create-manifest (uri "text" "ir-token-1") []) ir.policy))
+    0 (create-manifest (uri "text" "ir-token-1") []) ir.policy))
 
 (expect "create token 1 events"
   [{"name": "marmalade.ledger.TOKEN","params": ["ir-token-1"]}]
@@ -99,7 +99,7 @@
 (expect "Create token 2 succeeds"
   "Write succeeded"
   (create-token "ir-token-2"
-    1 (create-manifest (uri "text" "ir-token-2") []) ir.policy))
+    0 (create-manifest (uri "text" "ir-token-2") []) ir.policy))
 
 (expect "create token 2 events"
   [{"name": "marmalade.ledger.TOKEN","params": ["ir-token-2"]}]
@@ -113,7 +113,7 @@
 (expect "Create token 3 succeeds"
   "Write succeeded"
   (create-token "ir-token-3"
-    1 (create-manifest (uri "text" "ir-token-3") []) ir.policy))
+    0 (create-manifest (uri "text" "ir-token-3") []) ir.policy))
 
 (expect "create token 3 events"
   [{"name": "marmalade.ledger.TOKEN","params": ["ir-token-3"]}]
@@ -654,3 +654,66 @@
   (map (remove 'module-hash) (env-events true)))
 
 (commit-tx)
+
+(env-data {
+  "mint-acct-1": ["mint-acct-1"]
+ ,"mint-acct-2": ["mint-acct-2"]
+ ,"mint-acct-3": ["mint-acct-3"]
+ ,"buyer-acct-2-1": ["buyer-acct-2-1"]
+ ,"buyer-acct-1-1": ["buyer-acct-1-1"]
+})
+
+;;table queries test
+(expect "Get sale history of ir tokens"
+  [{ "sale-id": (hash "sale-token-1")
+     ,"quote": {
+       "id": "ir-token-1",
+       "spec": {
+         "price": 100.0
+        ,"recipient": "mint-acct-1"
+        ,"recipient-guard": (read-keyset 'mint-acct-1) }}}
+   { "sale-id": (hash "sale-token-2-1")
+    ,"quote": {
+       "id": "ir-token-2"
+      ,"spec": {
+         "price": 100.0
+        ,"recipient": "buyer-acct-2-1"
+        ,"recipient-guard": (read-keyset 'buyer-acct-2-1) }}}
+   { "sale-id": (hash "sale-token-3")
+    ,"quote": {
+       "id": "ir-token-3"
+      ,"spec": {
+         "price": 100.0
+        ,"recipient": "mint-acct-3"
+        ,"recipient-guard": (read-keyset 'mint-acct-3) }}}
+   { "sale-id": (hash "sale-token-1-1")
+    ,"quote": {
+       "id": "ir-token-1"
+      ,"spec": {
+         "price": 100.0
+        ,"recipient": "buyer-acct-1-1"
+       ,"recipient-guard": (read-keyset 'buyer-acct-1-1) }}}
+  { "sale-id": (hash "sale-token-2")
+   ,"quote": {
+      "id": "ir-token-2"
+     ,"spec": {
+        "price": 100.0
+       ,"recipient": "mint-acct-2"
+       ,"recipient-guard": (read-keyset 'mint-acct-2) }}}]
+  (ir.policy.get-quotes))
+
+(expect "Get current owner and the weight of all ir tokens"
+  [{ "id": "ir-token-1"
+    ,"owner": "buyer-acct-1-2"
+    ,"weight": 1
+   }
+   { "id": "ir-token-2"
+    ,"owner": "buyer-acct-2-2"
+    ,"weight": 2
+   }
+   {"id": "ir-token-3"
+   ,"owner": "buyer-acct-3-1"
+   ,"weight": 4
+   }]
+  (ir.policy.get-ir-tokens)
+)

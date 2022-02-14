@@ -1,0 +1,33 @@
+code: |-
+  (marmalade.ledger.mint
+    (read-msg "token-id")
+    (read-msg "account")
+    (read-keyset "account-ks")
+    (read-decimal "amount")
+  )
+signers:
+  - public: 0f876ce9c4914d7e10387515283b12e6dc750c8bb1c20324445cc68b607961fa
+    caps:
+      - name: marmalade.ledger.MINT
+        args: [
+          "ir-test-token-2"
+          ,"k:642856fc383f8f7acdfd944ac93a021c53617622a4f54270e07a33b176ad351c"
+          ,1.0
+        ]
+  - public: 9b30a2b5946f3ab48e37b329061b288230bac32c208972f662c58567e66d2627
+data:
+  token-id: "ir-test-token-2"
+  account: "k:642856fc383f8f7acdfd944ac93a021c53617622a4f54270e07a33b176ad351c"
+  account-ks:
+    keys:
+      - 642856fc383f8f7acdfd944ac93a021c53617622a4f54270e07a33b176ad351c
+    pred: keys-all
+  amount: 1.0
+networkId: testnet04
+nonce: "mint ir test token"
+publicMeta:
+  chainId: "0"
+  sender: "k:9b30a2b5946f3ab48e37b329061b288230bac32c208972f662c58567e66d2627"
+  gasLimit: 15000
+  gasPrice: 0.0000001
+  ttl: 15000
