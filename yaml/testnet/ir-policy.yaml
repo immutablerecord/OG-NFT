@@ -4,12 +4,12 @@ signers:
   - public: 9b30a2b5946f3ab48e37b329061b288230bac32c208972f662c58567e66d2627
 data:
   ns: "imm-rec"
-  upgrade: true
+  upgrade: false
 networkId: testnet04
-nonce: "upgrade imm-rec.policy"
+nonce: "install imm-rec.policy"
 publicMeta:
-  chainId: "0"
+  chainId: "1"
   sender: "k:9b30a2b5946f3ab48e37b329061b288230bac32c208972f662c58567e66d2627"
-  gasLimit: 15000
+  gasLimit: 150000
   gasPrice: 0.0000001
   ttl: 15000

@@ -1,5 +1,4 @@
 (namespace (read-msg 'ns))
-;; > 5 letters
 
 (module policy GOVERNANCE
 
@@ -14,16 +13,35 @@
   (defschema ir-token
     id:string
     weight:integer
+  )
+
+  (defschema ir-owner
+    id:string
+    weight:decimal
     owner:string
+    guard:guard
   )
 
   (deftable ir-tokens:{ir-token})
+  (deftable ir-owners:{ir-owner})
 
-  (defconst SHARE 0.1
+  (defcap QUOTE:bool
+    ( sale-id:string
+      token-id:string
+      recipient:string
+      amount:decimal
+      price:decimal
+      sale-price:decimal
+    )
+    @doc "For event emission purposes"
+    @event
+    true
+  )
+
+  (defconst ROYALTY 0.1
     "Share divided amongst collection owners")
-  ;; maybe rename this ROYALTY?
 
-  (defconst QUOTE "quote"
+  (defconst QUOTE-MSG-KEY "quote"
     @doc "Payload field for quote spec")
 
   (defschema quote-spec
@@ -39,7 +57,7 @@
 
   (deftable quotes:{quote-schema})
 
-  (defcap UPDATE_OWNER (id:string owner:string)
+  (defcap UPDATE_OWNER (id:string owner:string guard:guard amount:decimal)
     @event true)
 
   (defcap INTERNAL () true)
@@ -54,8 +72,16 @@
     (enforce-keyset 'ir-admin)
   )
 
+  (defun key ( id:string account:string ) ;; rename to account-key
+    (format "{}:{}" [id account])
+  )
+
   (defun get-policy:object{ir-token} (token:object{token-info})
     (read ir-tokens (at 'id token))
+  )
+
+  (defun get-owner:object{ir-owner} (token:object{token-info} account:string)
+    (read ir-owners (key (at 'id token) account))
   )
 
   (defun enforce-ledger:bool ()
@@ -71,7 +97,7 @@
         (enforce (> weight 0) "Invalid weight")
         (enforce (= (at 'precision token) 0) "Invalid precision")
         (insert ir-tokens (at 'id token)
-          { 'weight: weight, 'owner: "", 'id: (at 'id token) })
+          { 'weight: weight, 'id: (at 'id token) })
         true))
   )
 
@@ -83,25 +109,37 @@
     )
     (with-capability (MINT (at 'id token))
       (let*
-        ( (policy (get-policy token))
-          (owner (try "" (read-msg 'owner)))
-        )
+        ( (policy (get-policy token)))
         (enforce (= (at 'supply token) 0.0) "enforce 1-off supply")
-        (enforce (= amount 1.0) "enforce 1-off amount")
-        (if (!= owner "")
-          (with-capability (INTERNAL) (update-owner token owner))
-          true)
+        (enforce (= amount (+ 0.0 (at 'weight policy))) "enforce 1-off amount") ;; look for a better way to convert weight into decimal
+        (with-capability (INTERNAL) (update-owner token account guard amount))
       ))
   )
 
-  (defun update-owner (token:object{token-info} owner:string)
+  (defun update-owner (token:object{token-info} account:string guard:guard amount:decimal)
     (require-capability (INTERNAL))
-    (coin.details owner) ;; enforce coin account
+    (let ((coin-guard:guard (at 'guard (coin.details account))))
+      (enforce (= coin-guard guard) "Account guard does not match")
+    )
+    (with-default-read ir-owners (key (at 'id token) account)
+      { "weight" : -1.0 }
+      { "weight" := weight }
+      (let* ((is-new
+             (if (= weight -1.0)
+                 true
+               false))
+            (new-weight
+             (if is-new amount (+ weight amount))))
+      (enforce (>= new-weight 0.0) "Amount not positive")
+      (write ir-owners (key (at 'id token) account)
+        { "id" : (at 'id token),
+          "weight" : new-weight,
+          "owner" : account,
+          "guard" : guard
+        })
     ;; IR will make sure that buyers have k: accounts
-    (update ir-tokens (at 'id token) { 'owner: owner})
-    (emit-event (UPDATE_OWNER (at 'id token) owner))
+    (emit-event (UPDATE_OWNER (at 'id token) account guard new-weight)))) ;; emit guard?
   )
-
 
   (defun enforce-burn:bool
     ( token:object{token-info}
@@ -111,9 +149,9 @@
     (enforce false "Burn prohibited")
   )
 
-    ;; code here taken below straight from fixed-quote policy
+  ;; code here taken below straight from fixed-quote policy
   ;; make sure seller is kosher; if not, fails.
-  ;;
+  ;; for IR amount = weight always
   (defun enforce-offer:bool
     ( token:object{token-info}
       seller:string
@@ -123,7 +161,7 @@
     @doc "Capture quote spec for SALE of TOKEN from message"
     (enforce-ledger)
     (enforce-sale-pact sale-id)
-    (let* ( (spec:object{quote-spec} (read-msg QUOTE))
+    (let* ( (spec:object{quote-spec} (read-msg QUOTE-MSG-KEY))
             (price:decimal (at 'price spec))
             (recipient:string (at 'recipient spec))
             (recipient-guard:guard (at 'recipient-guard spec))
@@ -134,6 +172,7 @@
       (enforce (=
         (at 'guard recipient-details) recipient-guard)
         "Recipient guard does not match")
+      (emit-event (QUOTE sale-id (at 'id token) recipient amount price sale-price))
       (insert quotes sale-id { 'id: (at 'id token), 'spec: spec }))
   )
 
@@ -141,14 +180,13 @@
     ( token:object{token-info}
       seller:string
       buyer:string
+      buyer-guard:guard
       amount:decimal
       sale-id:string )
     (enforce-ledger)
     (enforce-sale-pact sale-id)
-    (bind (get-policy token)
-      { 'weight := weight:integer
-      }
-      (with-read quotes sale-id { 'id:= qtoken, 'spec:= spec:object{quote-spec} }
+    (bind (get-owner token seller) {'guard := seller-guard}
+      (with-read quotes sale-id { 'id := qtoken, 'spec := spec:object{quote-spec} }
         (enforce (= qtoken (at 'id token)) "incorrect sale token")
         (bind spec
           { 'price := price:decimal
@@ -156,24 +194,29 @@
           , 'recipient-guard := recipient-guard:guard
           }
           (let*
-            ( (sale-price (* amount price))
-            ;; for IR amount = 1 always
-              (owned (select ir-tokens
-                (and? (where 'owner (!= ""))
-                      (where 'id (!= (at 'id token))))))
+            ( (owned (filter
+                (and?
+                  (where 'id (!= (at 'id token)))
+                  (where 'owner (!= seller)))
+                (select ir-owners (where 'weight (!= 0.0)))))
+              (sale-price (* amount price))
               (total-owned (fold (+) 0.0 (map (at 'weight ) owned)))
-              (share (* sale-price SHARE))
-              (balance (if (> total-owned 0.0) (- sale-price share) sale-price))
-            )
+              (share (* sale-price ROYALTY))
+              (balance (if (> total-owned 0.0) (- sale-price share) sale-price)))
+            (coin.enforce-unit sale-price)
             (with-capability (INTERNAL)
-              (map (credit-owner buyer share total-owned) owned)
-              (update-owner token buyer))
+              (if (> total-owned 0.0)
+                (map (credit-owner buyer share total-owned) owned)
+                true)
+              (update-owner token seller seller-guard (* -1.0 amount))
+              (update-owner token buyer buyer-guard amount)
+              )
             (coin.transfer-create buyer recipient recipient-guard balance)))))
   )
 
-  (defun credit-owner (buyer:string share:decimal total-owned:decimal token:object{ir-token})
+  (defun credit-owner (buyer:string share:decimal total-owned:decimal owner:object{ir-owner})
     (require-capability (INTERNAL))
-    (coin.transfer buyer (at 'owner token) (floor (* share (/ (at 'weight token) total-owned)) (coin.precision)))
+    (coin.transfer buyer (at 'owner owner) (floor (* share (/ (at 'weight owner) total-owned)) (coin.precision)))
   )
 
   (defun enforce-sale-pact:bool (sale:string)
@@ -200,26 +243,10 @@
       amount:decimal )
     (enforce false "Transfer prohibited")
   )
-
-  (defun get-sales:list ()
-    (keys quotes))
-
-  (defun get-quote:object (sale-id:string)
-    { "sale-id": sale-id
-     ,"quote": (read quotes sale-id)
-    })
-
-  (defun get-quotes:list ()
-    (map (get-quote) (get-sales)))
-
-  (defun get-ir-token:object (id:string)
-    (read ir-tokens id))
-
-  (defun get-ir-tokens:list ()
-    (map (get-ir-token) (keys ir-tokens)))
 )
 
 (if (read-msg 'upgrade)
   ["upgrade complete"]
   [ (create-table quotes)
-    (create-table ir-tokens) ])
+    (create-table ir-tokens)
+    (create-table ir-owners) ])

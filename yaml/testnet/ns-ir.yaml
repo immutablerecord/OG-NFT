@@ -10,8 +10,8 @@ data:
 networkId: testnet04
 nonce: install namespace imm-rec
 publicMeta:
-  chainId: "0"
+  chainId: "1"
   sender: ["sender"]
-  gasLimit: 5000
+  gasLimit: 15000
   gasPrice: 0.0000001
   ttl: 600
