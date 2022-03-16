@@ -112,7 +112,7 @@
         ( (policy (get-policy token)))
         (enforce (= (at 'supply token) 0.0) "enforce 1-off supply")
         (enforce (= amount (+ 0.0 (at 'weight policy))) "enforce 1-off amount") ;; look for a better way to convert weight into decimal
-        (with-capability (INTERNAL) (update-owner token account guard amount))
+        (with-capability (INTERNAL) (update-owner token account guard 0.0))
       ))
   )
 
@@ -185,7 +185,7 @@
       sale-id:string )
     (enforce-ledger)
     (enforce-sale-pact sale-id)
-    (bind (get-owner token seller) {'guard := seller-guard}
+    (bind (get-owner token seller) {'guard := seller-guard, 'weight := seller-weight}
       (with-read quotes sale-id { 'id := qtoken, 'spec := spec:object{quote-spec} }
         (enforce (= qtoken (at 'id token)) "incorrect sale token")
         (bind spec
@@ -193,25 +193,22 @@
           , 'recipient := recipient:string
           , 'recipient-guard := recipient-guard:guard
           }
-          (let*
-            ( (owned (filter
-                (and?
-                  (where 'id (!= (at 'id token)))
-                  (where 'owner (!= seller)))
-                (select ir-owners (where 'weight (!= 0.0)))))
-              (sale-price (* amount price))
-              (total-owned (fold (+) 0.0 (map (at 'weight ) owned)))
-              (share (* sale-price ROYALTY))
-              (balance (if (> total-owned 0.0) (- sale-price share) sale-price)))
-            (coin.enforce-unit sale-price)
-            (with-capability (INTERNAL)
+          (with-capability (INTERNAL)
+            (if (> seller-weight 0.0)
+              (update-owner token seller seller-guard (* -1.0 amount))
+              true)
+            (let*
+              ( (owned (select ir-owners (where 'weight (!= 0.0))))
+                (sale-price (* amount price))
+                (total-owned (fold (+) 0.0 (map (at 'weight ) owned)))
+                (share (* sale-price ROYALTY))
+                (balance (if (> total-owned 0.0) (- sale-price share) sale-price)))
+              (coin.enforce-unit sale-price)
               (if (> total-owned 0.0)
                 (map (credit-owner buyer share total-owned) owned)
                 true)
-              (update-owner token seller seller-guard (* -1.0 amount))
               (update-owner token buyer buyer-guard amount)
-              )
-            (coin.transfer-create buyer recipient recipient-guard balance)))))
+              (coin.transfer-create buyer recipient recipient-guard balance))))))
   )
 
   (defun credit-owner (buyer:string share:decimal total-owned:decimal owner:object{ir-owner})
