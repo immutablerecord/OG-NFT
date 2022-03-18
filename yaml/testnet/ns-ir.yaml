@@ -1,6 +1,7 @@
 codeFile: ../../ns-ir.pact
 signers:
-  - public: [signingKey]
+  - public: dfb16b13e4032a6878fd98506b22cb0d6e5932c541e656b7ee5d69d72e6eb76e
+  - public: 0f876ce9c4914d7e10387515283b12e6dc750c8bb1c20324445cc68b607961fa
 data:
   ns: "imm-rec"
   ir-admin:
@@ -11,7 +12,7 @@ networkId: testnet04
 nonce: install namespace imm-rec
 publicMeta:
   chainId: "1"
-  sender: ["sender"]
-  gasLimit: 15000
+  sender: dfb16b13e4032a6878fd98506b22cb0d6e5932c541e656b7ee5d69d72e6eb76e
+  gasLimit: 5000
   gasPrice: 0.0000001
   ttl: 600

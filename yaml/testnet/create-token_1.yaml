@@ -8,20 +8,20 @@ code: |-
         (read-msg "scheme-str")
         (read-msg "data-str"))
       [])
-    ir.policy)
+    imm-rec.policy)
 signers:
   - public: 0f876ce9c4914d7e10387515283b12e6dc750c8bb1c20324445cc68b607961fa
   - public: 9b30a2b5946f3ab48e37b329061b288230bac32c208972f662c58567e66d2627
 data:
-  token-id: "ir-test-token-2"
+  token-id: "ir-test-token-1"
   precision: 0
   weight: 1
-  scheme-str: "ir-scheme-2"
-  data-str: "ir-data-2"
+  scheme-str: "ir-scheme-1"
+  data-str: "ir-data-1"
 networkId: testnet04
 nonce: "create ir test token"
 publicMeta:
-  chainId: "0"
+  chainId: "1"
   sender: "k:9b30a2b5946f3ab48e37b329061b288230bac32c208972f662c58567e66d2627"
   gasLimit: 15000
   gasPrice: 0.0000001
