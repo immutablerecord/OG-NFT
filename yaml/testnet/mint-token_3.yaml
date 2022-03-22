@@ -9,14 +9,14 @@ signers:
   - public: 0f876ce9c4914d7e10387515283b12e6dc750c8bb1c20324445cc68b607961fa
     caps:
       - name: marmalade.ledger.MINT
-        args: [ "ir-test-token-3", "k:642856fc383f8f7acdfd944ac93a021c53617622a4f54270e07a33b176ad351c", 4.0 ]
+        args: [ "ir-test-token-3", "k:7b3a81d72e3bb7bc1b7f0dd557494cbf120e519ccb9749f81ab7d53e77d32121", 4.0 ]
   - public: 9b30a2b5946f3ab48e37b329061b288230bac32c208972f662c58567e66d2627
 data:
   token-id: "ir-test-token-3"
-  account: "k:642856fc383f8f7acdfd944ac93a021c53617622a4f54270e07a33b176ad351c"
+  account: "k:7b3a81d72e3bb7bc1b7f0dd557494cbf120e519ccb9749f81ab7d53e77d32121"
   account-ks:
     keys:
-      - 642856fc383f8f7acdfd944ac93a021c53617622a4f54270e07a33b176ad351c
+      - 7b3a81d72e3bb7bc1b7f0dd557494cbf120e519ccb9749f81ab7d53e77d32121
     pred: keys-all
   amount: 4.0
 networkId: testnet04
