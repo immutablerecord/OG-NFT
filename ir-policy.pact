@@ -67,6 +67,10 @@
     (enforce-keyset 'ir-admin)
   )
 
+  (defcap TOKEN_WEIGHT (id:string weight:integer)
+    @event true
+  )
+
   (defcap MINT (id:string)
     (enforce-ledger)
     (enforce-keyset 'ir-admin)
@@ -92,13 +96,17 @@
     ( token:object{token-info}
     )
     (with-capability (CREATE_TOKEN (at 'id token))
-      (let* ( (weight (read-integer 'weight))
+      (let* ( (weight:integer (read-integer 'weight ))
+              (id:string (at 'id token))
+              (precision:integer (at 'precision token))
             )
         (enforce (> weight 0) "Invalid weight")
-        (enforce (= (at 'precision token) 0) "Invalid precision")
-        (insert ir-tokens (at 'id token)
-          { 'weight: weight, 'id: (at 'id token) })
-        true))
+        (enforce (= precision 0) "Invalid precision")
+        (insert ir-tokens id
+          {'weight: weight, 'id: id})
+        (emit-event (TOKEN_WEIGHT id weight))
+        true)
+      )
   )
 
   (defun enforce-mint:bool
@@ -118,9 +126,11 @@
 
   (defun update-owner (token:object{token-info} account:string guard:guard amount:decimal)
     (require-capability (INTERNAL))
-    (let ((coin-guard:guard (at 'guard (coin.details account))))
-      (enforce (= coin-guard guard) "Account guard does not match")
-    )
+    (if (!= amount 0.0)
+      (let ((coin-guard:guard (at 'guard (coin.details account))))
+        (enforce (= coin-guard guard) "Account guard does not match")
+      )
+      true)
     (with-default-read ir-owners (key (at 'id token) account)
       { "weight" : -1.0 }
       { "weight" := weight }
