@@ -201,7 +201,6 @@
         (bind spec
           { 'price := price:decimal
           , 'recipient := recipient:string
-          , 'recipient-guard := recipient-guard:guard
           }
           (with-capability (INTERNAL)
             (if (> seller-weight 0.0)
@@ -218,12 +217,14 @@
                 (map (credit-owner buyer share total-owned) owned)
                 true)
               (update-owner token buyer buyer-guard amount)
-              (coin.transfer-create buyer recipient recipient-guard balance))))))
+              (coin.transfer buyer recipient balance))))))
   )
 
   (defun credit-owner (buyer:string share:decimal total-owned:decimal owner:object{ir-owner})
     (require-capability (INTERNAL))
-    (coin.transfer buyer (at 'owner owner) (floor (* share (/ (at 'weight owner) total-owned)) (coin.precision)))
+    (if (!= buyer (at 'owner owner))
+      (coin.transfer buyer (at 'owner owner) (floor (* share (/ (at 'weight owner) total-owned)) (coin.precision)))
+      true)
   )
 
   (defun enforce-sale-pact:bool (sale:string)

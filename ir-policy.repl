@@ -193,7 +193,8 @@
 
 ;;
 ;; sale token 1
-;;
+;; token 1 is not owned.
+;; token 1 is sold from mint-acct-1 to buyer-acct-1
 
 (begin-tx "sale token 1")
 (env-hash (hash "sale-token-1"))
@@ -201,8 +202,8 @@
 (use marmalade.ledger)
 
 (env-data
-  { 'buyer: "buyer-acct-1-1"
-  , 'buyer-guard: ["buyer-acct-1-1"] })
+  { 'buyer: "buyer-acct-1"
+  , 'buyer-guard: ["buyer-acct-1"] })
 
 (test-capability (coin.COINBASE))
 (coin.coinbase (read-msg "buyer") (read-keyset 'buyer-guard) 100.0)
@@ -246,7 +247,7 @@
   (sale "ir-token-1" "mint-acct-1" 1.0 200))
 
 (expect "offer events"
-  [ {"name": "coin.TRANSFER","params": ["" "buyer-acct-1-1" 100.0]}
+  [ {"name": "coin.TRANSFER","params": ["" "buyer-acct-1" 100.0]}
     {"name": "marmalade.ledger.OFFER","params": ["ir-token-1" "mint-acct-1" 1.0 200]}
     {"name": "marmalade.ledger.SALE","params": ["ir-token-1" "mint-acct-1" 1.0 200 (hash "sale-token-1")]}
     {"name": "imm-rec.policy.QUOTE","params": [(hash "sale-token-1") "ir-token-1" "mint-acct-1" 1.0 100.0 100.0]}
@@ -256,16 +257,16 @@
   (map (remove 'module-hash) (env-events true)))
 
 (env-data
-  { 'buyer: "buyer-acct-1-1"
-  , 'buyer-guard: {'keys: ["buyer-acct-1-1"], 'pred: 'keys-all}
+  { 'buyer: "buyer-acct-1"
+  , 'buyer-guard: {'keys: ["buyer-acct-1"], 'pred: 'keys-all}
   }
 )
 
 (env-sigs [
-  {'key: 'buyer-acct-1-1
+  {'key: 'buyer-acct-1
   ,'caps: [
-     (marmalade.ledger.BUY "ir-token-1" "mint-acct-1" "buyer-acct-1-1" 1.0 200 (hash "sale-token-1"))
-    ,(coin.TRANSFER "buyer-acct-1-1" "mint-acct-1" 100.0) ]
+     (marmalade.ledger.BUY "ir-token-1" "mint-acct-1" "buyer-acct-1" 1.0 200 (hash "sale-token-1"))
+    ,(coin.TRANSFER "buyer-acct-1" "mint-acct-1" 100.0) ]
   }])
 
 (expect "buy succeeds"
@@ -278,32 +279,33 @@
 
 (expect "buyer account is credited"
   1.0
-  (marmalade.ledger.get-balance "ir-token-1" "buyer-acct-1-1"))
+  (marmalade.ledger.get-balance "ir-token-1" "buyer-acct-1"))
 
 (expect "buyer coin account is debited, seller coin account is credited"
   [0.0 100.0]
-  (map (coin.get-balance)["buyer-acct-1-1" "mint-acct-1"]))
+  (map (coin.get-balance)["buyer-acct-1" "mint-acct-1"]))
 
 (env-data
   { 'seller-guard: {'keys: ["mint-acct-1"], 'pred: 'keys-all}
-  , 'buyer-guard: {'keys: ["buyer-acct-1-1"], 'pred: 'keys-all}
+  , 'buyer-guard: {'keys: ["buyer-acct-1"], 'pred: 'keys-all}
   }
 )
 
 (expect "buy events"
-  [ {"name": "marmalade.ledger.BUY","params": ["ir-token-1" "mint-acct-1" "buyer-acct-1-1" 1.0 200 (hash "sale-token-1")]}
-    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-1" "buyer-acct-1-1" (read-keyset 'buyer-guard) 1.0]}
-    {"name": "coin.TRANSFER","params": ["buyer-acct-1-1" "mint-acct-1" 100.0]}
-    {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-1" "buyer-acct-1-1" (read-keyset 'buyer-guard)]}
-    {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-1" (sale-account) "buyer-acct-1-1" 1.0]}
-    {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-1" 1.0 {"account": (sale-account),"current": 0.0,"previous": 1.0} {"account": "buyer-acct-1-1","current": 1.0,"previous": 0.0}]}]
+  [ {"name": "marmalade.ledger.BUY","params": ["ir-token-1" "mint-acct-1" "buyer-acct-1" 1.0 200 (hash "sale-token-1")]}
+    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-1" "buyer-acct-1" (read-keyset 'buyer-guard) 1.0]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-1" "mint-acct-1" 100.0]}
+    {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-1" "buyer-acct-1" (read-keyset 'buyer-guard)]}
+    {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-1" (sale-account) "buyer-acct-1" 1.0]}
+    {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-1" 1.0 {"account": (sale-account),"current": 0.0,"previous": 1.0} {"account": "buyer-acct-1","current": 1.0,"previous": 0.0}]}]
     (map (remove 'module-hash) (env-events true)))
 
 (commit-tx)
 
 ;;
 ;; sale token 1 again
-;;
+;; buyer-acct-1 owns 1/1 of token 1
+;; token 1 is sold from buyer-acct-1 to buyer-acct-2
 
 (begin-tx "sale token 1-1")
 (env-hash (hash "sale-token-1-1"))
@@ -311,50 +313,50 @@
 (use marmalade.ledger)
 
 (env-data
-  { 'buyer: "buyer-acct-1-2"
-  , 'buyer-guard: ["buyer-acct-1-2"] })
+  { 'buyer: "buyer-acct-2"
+  , 'buyer-guard: ["buyer-acct-2"] })
 
-;; 100 KDA funded to buyer-acct-1-2
+;; 200 KDA funded to buyer-acct-2
 (test-capability (coin.COINBASE))
-(coin.coinbase (read-msg 'buyer) (read-keyset 'buyer-guard) 100.0)
+(coin.coinbase (read-msg 'buyer) (read-keyset 'buyer-guard) 200.0)
 
 (env-data
   { 'quote: {
       'price: 100.0
-    , 'recipient: "buyer-acct-1-1"
-    , 'recipient-guard: {'keys: ["buyer-acct-1-1"], 'pred: 'keys-all}
+    , 'recipient: "buyer-acct-1"
+    , 'recipient-guard: {'keys: ["buyer-acct-1"], 'pred: 'keys-all}
     }})
 
 (env-sigs [
-  { 'key: 'buyer-acct-1-1
-  , 'caps: [(marmalade.ledger.OFFER "ir-token-1" "buyer-acct-1-1" 1.0 200)]
+  { 'key: 'buyer-acct-1
+  , 'caps: [(marmalade.ledger.OFFER "ir-token-1" "buyer-acct-1" 1.0 200)]
   }])
 
 (expect "offer succeeds"
   true
-  (sale "ir-token-1" "buyer-acct-1-1" 1.0 200))
+  (sale "ir-token-1" "buyer-acct-1" 1.0 200))
 
 (expect "offer events"
-  [ {"name": "coin.TRANSFER","params": ["" "buyer-acct-1-2" 100.0]}
-    {"name": "marmalade.ledger.OFFER","params": ["ir-token-1" "buyer-acct-1-1" 1.0 200]}
-    {"name": "marmalade.ledger.SALE","params": ["ir-token-1" "buyer-acct-1-1" 1.0 200 (hash "sale-token-1-1")]}
-    {"name": "imm-rec.policy.QUOTE","params": [(hash "sale-token-1-1") "ir-token-1" "buyer-acct-1-1" 1.0 100.0 100.0]}
+  [ {"name": "coin.TRANSFER","params": ["" "buyer-acct-2" 200.0]}
+    {"name": "marmalade.ledger.OFFER","params": ["ir-token-1" "buyer-acct-1" 1.0 200]}
+    {"name": "marmalade.ledger.SALE","params": ["ir-token-1" "buyer-acct-1" 1.0 200 (hash "sale-token-1-1")]}
+    {"name": "imm-rec.policy.QUOTE","params": [(hash "sale-token-1-1") "ir-token-1" "buyer-acct-1" 1.0 100.0 100.0]}
     {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-1" (sale-account) (create-pact-guard 'SALE)]}
-    {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-1" "buyer-acct-1-1" (sale-account) 1.0]}
-    {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-1" 1.0 {"account": "buyer-acct-1-1","current": 0.0,"previous": 1.0} {"account": (sale-account),"current": 1.0,"previous": 0.0}]}]
+    {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-1" "buyer-acct-1" (sale-account) 1.0]}
+    {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-1" 1.0 {"account": "buyer-acct-1","current": 0.0,"previous": 1.0} {"account": (sale-account),"current": 1.0,"previous": 0.0}]}]
  (map (remove 'module-hash) (env-events true)))
 
 (env-data
-  { 'buyer: "buyer-acct-1-2"
-  , 'buyer-guard: {'keys: ["buyer-acct-1-2"], 'pred: 'keys-all}
+  { 'buyer: "buyer-acct-2"
+  , 'buyer-guard: {'keys: ["buyer-acct-2"], 'pred: 'keys-all}
   }
 )
 
 (env-sigs [
-  {'key: 'buyer-acct-1-2
+  {'key: 'buyer-acct-2
   ,'caps: [
-     (marmalade.ledger.BUY "ir-token-1" "buyer-acct-1-1" "buyer-acct-1-2" 1.0 200 (hash "sale-token-1-1"))
-    ,(coin.TRANSFER "buyer-acct-1-2" "buyer-acct-1-1" 100.0) ]
+     (marmalade.ledger.BUY "ir-token-1" "buyer-acct-1" "buyer-acct-2" 1.0 200 (hash "sale-token-1-1"))
+    ,(coin.TRANSFER "buyer-acct-2" "buyer-acct-1" 100.0) ]
   }])
 
 (expect "buy succeeds"
@@ -363,30 +365,30 @@
 
 (expect "seller account is debited"
   0.0
-  (marmalade.ledger.get-balance "ir-token-1" "buyer-acct-1-1"))
+  (marmalade.ledger.get-balance "ir-token-1" "buyer-acct-1"))
 
 (expect "buyer account is credited"
   1.0
-  (marmalade.ledger.get-balance "ir-token-1" "buyer-acct-1-2"))
+  (marmalade.ledger.get-balance "ir-token-1" "buyer-acct-2"))
 
 (expect "buyer coin account is debited 100%, seller coin account is credited 100%"
-  [0.0 100.0]
-  (map (coin.get-balance)["buyer-acct-1-2" "buyer-acct-1-1"]))
+  [100.0 100.0]
+  (map (coin.get-balance)["buyer-acct-2" "buyer-acct-1"]))
 
 (env-data
-  { 'seller-guard: {'keys: ["buyer-acct-1-1"], 'pred: 'keys-all}
-  , 'buyer-guard: {'keys: ["buyer-acct-1-2"], 'pred: 'keys-all}
+  { 'seller-guard: {'keys: ["buyer-acct-1"], 'pred: 'keys-all}
+  , 'buyer-guard: {'keys: ["buyer-acct-2"], 'pred: 'keys-all}
   }
 )
 
 (expect "buy events"
-  [ {"name": "marmalade.ledger.BUY","params": ["ir-token-1" "buyer-acct-1-1" "buyer-acct-1-2" 1.0 200 (hash "sale-token-1-1")]}
-    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-1" "buyer-acct-1-1" (read-keyset 'seller-guard) 0.0]}
-    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-1" "buyer-acct-1-2" (read-keyset 'buyer-guard) 1.0]}
-    {"name": "coin.TRANSFER","params": ["buyer-acct-1-2" "buyer-acct-1-1" 100.0]}
-    {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-1" "buyer-acct-1-2" (read-keyset 'buyer-guard)]}
-    {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-1" (sale-account) "buyer-acct-1-2" 1.0]}
-    {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-1" 1.0 {"account": (sale-account),"current": 0.0,"previous": 1.0} {"account": "buyer-acct-1-2","current": 1.0,"previous": 0.0}]}]
+  [ {"name": "marmalade.ledger.BUY","params": ["ir-token-1" "buyer-acct-1" "buyer-acct-2" 1.0 200 (hash "sale-token-1-1")]}
+    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-1" "buyer-acct-1" (read-keyset 'seller-guard) 0.0]}
+    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-1" "buyer-acct-2" (read-keyset 'buyer-guard) 1.0]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-2" "buyer-acct-1" 100.0]}
+    {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-1" "buyer-acct-2" (read-keyset 'buyer-guard)]}
+    {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-1" (sale-account) "buyer-acct-2" 1.0]}
+    {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-1" 1.0 {"account": (sale-account),"current": 0.0,"previous": 1.0} {"account": "buyer-acct-2","current": 1.0,"previous": 0.0}]}]
     (map (remove 'module-hash) (env-events true)))
 
 (commit-tx)
@@ -425,7 +427,9 @@
 
 ;;
 ;; sale token 2
-;;
+;; buyer-acct-2 owns 1/1 of token 1
+;; token 2 is not owned
+;; token 2 is sold from mint-acct-2 to buyer-acct-2
 
 (begin-tx "sale token 2")
 (env-hash (hash "sale-token-2"))
@@ -436,11 +440,9 @@
 (env-data
   { 'mint-recipient: "mint-recipient-2"
   , 'mint-recipient-guard: ["mint-recipient-2"]
-  , 'buyer: "buyer-acct-2-1"
-  , 'buyer-guard: ["buyer-acct-2-1"] })
+  })
 
 (test-capability (coin.COINBASE))
-(coin.coinbase (read-msg "buyer") (read-keyset 'buyer-guard) 100.0)
 (coin.create-account (read-msg "mint-recipient") (read-keyset 'mint-recipient-guard))
 
 (env-data
@@ -460,8 +462,7 @@
   (sale "ir-token-2" "mint-acct-2" 2.0 200))
 
 (expect "offer events"
-  [{"name": "coin.TRANSFER","params": ["" "buyer-acct-2-1" 100.0]}
-   {"name": "marmalade.ledger.OFFER","params": ["ir-token-2" "mint-acct-2" 2.0 200]}
+  [{"name": "marmalade.ledger.OFFER","params": ["ir-token-2" "mint-acct-2" 2.0 200]}
    {"name": "marmalade.ledger.SALE","params": ["ir-token-2" "mint-acct-2" 2.0 200 (hash "sale-token-2")]}
    {"name": "imm-rec.policy.QUOTE","params": [(hash "sale-token-2") "ir-token-2" "mint-recipient-2" 2.0 50.0 100.0]}
    {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-2" (sale-account) (create-pact-guard 'SALE)]}
@@ -470,17 +471,17 @@
   (map (remove 'module-hash) (env-events true)))
 
 (env-data
-  { 'buyer: "buyer-acct-2-1"
-  , 'buyer-guard: {'keys: ["buyer-acct-2-1"], 'pred: 'keys-all}
+  { 'buyer: "buyer-acct-2"
+  , 'buyer-guard: {'keys: ["buyer-acct-2"], 'pred: 'keys-all}
   }
 )
 
 (env-sigs [
-  {'key: 'buyer-acct-2-1
+  {'key: 'buyer-acct-2
   ,'caps: [
-     (marmalade.ledger.BUY "ir-token-2" "mint-acct-2" "buyer-acct-2-1" 2.0 200 (hash "sale-token-2")),
-     (coin.TRANSFER "buyer-acct-2-1" "buyer-acct-1-2" 10.0),
-     (coin.TRANSFER "buyer-acct-2-1" "mint-recipient-2" 90.0)
+     (marmalade.ledger.BUY "ir-token-2" "mint-acct-2" "buyer-acct-2" 2.0 200 (hash "sale-token-2")),
+     (coin.TRANSFER "buyer-acct-2" "buyer-acct-2" 10.0),
+     (coin.TRANSFER "buyer-acct-2" "mint-recipient-2" 90.0)
     ]
   }])
 
@@ -494,26 +495,25 @@
 
 (expect "buyer account is credited 2.0"
   2.0
-  (marmalade.ledger.get-balance "ir-token-2" "buyer-acct-2-1"))
+  (marmalade.ledger.get-balance "ir-token-2" "buyer-acct-2"))
 
-(expect "buyer coin account is debited 100%, seller coin account is credited 90%, owner coin account is debited 10%"
-  [0.0 90.0 10.0]
-  (map (coin.get-balance) ["buyer-acct-2-1" "mint-recipient-2" "buyer-acct-1-2"]))
+(expect "buyer coin account is debited 90% (10% royalty paid to itself), seller coin account is credited 90%."
+  [10.0 90.0]
+  (map (coin.get-balance) ["buyer-acct-2" "mint-recipient-2"]))
 
 (env-data
   { 'seller-guard: {'keys: ["mint-acct-2"], 'pred: 'keys-all}
-  , 'buyer-guard: {'keys: ["buyer-acct-2-1"], 'pred: 'keys-all}
+  , 'buyer-guard: {'keys: ["buyer-acct-2"], 'pred: 'keys-all}
   }
 )
 
 (expect "buy events"
-  [ {"name": "marmalade.ledger.BUY","params": ["ir-token-2" "mint-acct-2" "buyer-acct-2-1" 2.0 200 (hash "sale-token-2")]}
-    {"name": "coin.TRANSFER","params": ["buyer-acct-2-1" "buyer-acct-1-2" 10.0]}
-    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-2" "buyer-acct-2-1" (read-keyset 'buyer-guard) 2.0]}
-    {"name": "coin.TRANSFER","params": ["buyer-acct-2-1" "mint-recipient-2" 90.0]}
-    {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-2" "buyer-acct-2-1" (read-keyset 'buyer-guard)]}
-    {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-2" (sale-account) "buyer-acct-2-1" 2.0]}
-    {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-2" 2.0 {"account": (sale-account),"current": 0.0,"previous": 2.0} {"account": "buyer-acct-2-1","current": 2.0,"previous": 0.0}]}]
+  [ {"name": "marmalade.ledger.BUY","params": ["ir-token-2" "mint-acct-2" "buyer-acct-2" 2.0 200 (hash "sale-token-2")]}
+    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-2" "buyer-acct-2" (read-keyset 'buyer-guard) 2.0]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-2" "mint-recipient-2" 90.0]}
+    {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-2" "buyer-acct-2" (read-keyset 'buyer-guard)]}
+    {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-2" (sale-account) "buyer-acct-2" 2.0]}
+    {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-2" 2.0 {"account": (sale-account),"current": 0.0,"previous": 2.0} {"account": "buyer-acct-2","current": 2.0,"previous": 0.0}]}]
   (map (remove 'module-hash) (env-events true)))
 
 (commit-tx)
@@ -555,7 +555,9 @@
 
 ;;
 ;; sale token 2 again
-;;
+;; buyer-acct-2 owns 1/1 of token 1
+;; buyer-acct-2 owns 2/2 of token 2
+;; 1/2 token 2 is sold from buyer-acct-2 to buyer-acct-3
 
 (begin-tx "sale token 2 again")
 (env-hash (hash "sale-token-2-1"))
@@ -563,51 +565,49 @@
 (use marmalade.ledger)
 
 (env-data
-  { 'buyer: "buyer-acct-2-2"
-  , 'buyer-guard: ["buyer-acct-2-2"] })
+  { 'buyer: "buyer-acct-3"
+  , 'buyer-guard: ["buyer-acct-3"] })
 
 (test-capability (coin.COINBASE))
 (coin.coinbase (read-msg "buyer") (read-keyset 'buyer-guard) 100.0)
 
-
 (env-data
   { 'quote: {
       'price: 100.0
-    , 'recipient: "buyer-acct-2-1"
-    , 'recipient-guard: {'keys: ["buyer-acct-2-1"], 'pred: 'keys-all}
+    , 'recipient: "buyer-acct-2"
+    , 'recipient-guard: {'keys: ["buyer-acct-2"], 'pred: 'keys-all}
     }})
 
 (env-sigs [
-  { 'key: 'buyer-acct-2-1
-  , 'caps: [(marmalade.ledger.OFFER "ir-token-2" "buyer-acct-2-1" 1.0 200)]
+  { 'key: 'buyer-acct-2
+  , 'caps: [(marmalade.ledger.OFFER "ir-token-2" "buyer-acct-2" 1.0 200)]
   }])
 
 (expect "offer succeeds"
   true
-  (sale "ir-token-2" "buyer-acct-2-1" 1.0 200))
+  (sale "ir-token-2" "buyer-acct-2" 1.0 200))
 
 (expect "offer events"
- [{"name": "coin.TRANSFER","params": ["" "buyer-acct-2-2" 100.0]}
-  {"name": "marmalade.ledger.OFFER","params": ["ir-token-2" "buyer-acct-2-1" 1.0 200]}
-  {"name": "marmalade.ledger.SALE","params": ["ir-token-2" "buyer-acct-2-1" 1.0 200 (hash "sale-token-2-1")]}
-  {"name": "imm-rec.policy.QUOTE","params": [(hash "sale-token-2-1") "ir-token-2" "buyer-acct-2-1" 1.0 100.0 100.0]}
+ [{"name": "coin.TRANSFER","params": ["" "buyer-acct-3" 100.0]}
+  {"name": "marmalade.ledger.OFFER","params": ["ir-token-2" "buyer-acct-2" 1.0 200]}
+  {"name": "marmalade.ledger.SALE","params": ["ir-token-2" "buyer-acct-2" 1.0 200 (hash "sale-token-2-1")]}
+  {"name": "imm-rec.policy.QUOTE","params": [(hash "sale-token-2-1") "ir-token-2" "buyer-acct-2" 1.0 100.0 100.0]}
   {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-2" (sale-account) (create-pact-guard 'SALE)]}
-  {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-2" "buyer-acct-2-1" (sale-account) 1.0]}
-  {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-2" 1.0 {"account": "buyer-acct-2-1","current": 1.0,"previous": 2.0} {"account": (sale-account),"current": 1.0,"previous": 0.0}]}]
+  {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-2" "buyer-acct-2" (sale-account) 1.0]}
+  {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-2" 1.0 {"account": "buyer-acct-2","current": 1.0,"previous": 2.0} {"account": (sale-account),"current": 1.0,"previous": 0.0}]}]
   (map (remove 'module-hash) (env-events true)))
 
 (env-data
-  { 'buyer: "buyer-acct-2-2"
-  , 'buyer-guard: {'keys: ["buyer-acct-2-2"], 'pred: 'keys-all}
+  { 'buyer: "buyer-acct-3"
+  , 'buyer-guard: {'keys: ["buyer-acct-3"], 'pred: 'keys-all}
   }
 )
 
 (env-sigs [
-  {'key: 'buyer-acct-2-2
+  {'key: 'buyer-acct-3
   ,'caps: [
-     (marmalade.ledger.BUY "ir-token-2" "buyer-acct-2-1" "buyer-acct-2-2" 1.0 200 (hash "sale-token-2-1"))
-     (coin.TRANSFER "buyer-acct-2-2" "buyer-acct-1-2" 5.0)
-     (coin.TRANSFER "buyer-acct-2-2" "buyer-acct-2-1" 95.0)
+     (marmalade.ledger.BUY "ir-token-2" "buyer-acct-2" "buyer-acct-3" 1.0 200 (hash "sale-token-2-1"))
+     (coin.TRANSFER "buyer-acct-3" "buyer-acct-2" 100.0)
      ]
   }])
 
@@ -617,32 +617,33 @@
 
 (expect "seller account is debited 1.0"
   1.0
-  (marmalade.ledger.get-balance "ir-token-2" "buyer-acct-2-1"))
+  (marmalade.ledger.get-balance "ir-token-2" "buyer-acct-2"))
 
 (expect "buyer account is credited 1.0"
   1.0
-  (marmalade.ledger.get-balance "ir-token-2" "buyer-acct-2-2"))
+  (marmalade.ledger.get-balance "ir-token-2" "buyer-acct-3"))
 
-(expect "buyer coin account is debited 100%, seller coin account is credited 90%, ir-token-1 owner is credited 2%, ir-token-3 owner is credited 8%"
-  [0.0 95.0 15.0]
-  (map (coin.get-balance) ["buyer-acct-2-2" "buyer-acct-2-1" "buyer-acct-1-2"]))
+;; buyer-acct-2 is the ir-token-1, ir-token-2 owner
+(expect "buyer coin account is debited 100%, seller coin account is credited 90%, ir-token-1 owner is credited 5%, ir-token-2 owner is credited 5%"
+  [0.0 110.0]
+  (map (coin.get-balance) ["buyer-acct-3" "buyer-acct-2"]))
 
 (env-data
-  { 'seller-guard: {'keys: ["buyer-acct-2-1"], 'pred: 'keys-all}
-  , 'buyer-guard: {'keys: ["buyer-acct-2-2"], 'pred: 'keys-all}
+  { 'seller-guard: {'keys: ["buyer-acct-2"], 'pred: 'keys-all}
+  , 'buyer-guard: {'keys: ["buyer-acct-3"], 'pred: 'keys-all}
   }
 )
 
 (expect "buy events"
-[ {"name": "marmalade.ledger.BUY","params": ["ir-token-2" "buyer-acct-2-1" "buyer-acct-2-2" 1.0 200 (hash "sale-token-2-1")]}
-  {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-2" "buyer-acct-2-1" (read-keyset 'seller-guard ) 1.0]}
-  {"name": "coin.TRANSFER","params": ["buyer-acct-2-2" "buyer-acct-1-2" 5.0]}
-  {"name": "coin.TRANSFER","params": ["buyer-acct-2-2" "buyer-acct-2-1" 5.0]}
-  {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-2" "buyer-acct-2-2" (read-keyset 'buyer-guard ) 1.0]}
-  {"name": "coin.TRANSFER","params": ["buyer-acct-2-2" "buyer-acct-2-1" 90.0]}
-  {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-2" "buyer-acct-2-2" (read-keyset 'buyer-guard )]}
-  {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-2" (sale-account) "buyer-acct-2-2" 1.0]}
-  {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-2" 1.0 {"account": (sale-account),"current": 0.0,"previous": 1.0} {"account": "buyer-acct-2-2","current": 1.0,"previous": 0.0}]}]
+[ {"name": "marmalade.ledger.BUY","params": ["ir-token-2" "buyer-acct-2" "buyer-acct-3" 1.0 200 (hash "sale-token-2-1")]}
+  {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-2" "buyer-acct-2" (read-keyset 'seller-guard ) 1.0]}
+  {"name": "coin.TRANSFER","params": ["buyer-acct-3" "buyer-acct-2" 5.0]}
+  {"name": "coin.TRANSFER","params": ["buyer-acct-3" "buyer-acct-2" 5.0]}
+  {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-2" "buyer-acct-3" (read-keyset 'buyer-guard ) 1.0]}
+  {"name": "coin.TRANSFER","params": ["buyer-acct-3" "buyer-acct-2" 90.0]}
+  {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-2" "buyer-acct-3" (read-keyset 'buyer-guard )]}
+  {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-2" (sale-account) "buyer-acct-3" 1.0]}
+  {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-2" 1.0 {"account": (sale-account),"current": 0.0,"previous": 1.0} {"account": "buyer-acct-3","current": 1.0,"previous": 0.0}]}]
   (map (remove 'module-hash) (env-events true)))
 
 (commit-tx)
@@ -650,7 +651,10 @@
 
 ;;
 ;; sale token 3
-;;
+;; buyer-acct-2 owns 1/1 of token 1
+;; buyer-acct-2 owns 1/2 of token 2
+;; buyer-acct-3 owns 1/2 of token 2
+;; 2/4 token 3 is sold from mint-acct-3 to buyer-acct-4
 
 (begin-tx "sale token 3")
 (env-hash (hash "sale-token-3"))
@@ -661,8 +665,8 @@
 (env-data
   { 'mint-recipient: "mint-recipient-3"
   , 'mint-recipient-guard: ["mint-recipient-3"]
-  ,  'buyer: "buyer-acct-3-1"
-  , 'buyer-guard: ["buyer-acct-3-1"] })
+  , 'buyer: "buyer-acct-4"
+  , 'buyer-guard: ["buyer-acct-4"] })
 
 (test-capability (coin.COINBASE))
 (coin.coinbase (read-msg "buyer") (read-keyset 'buyer-guard) 100.0)
@@ -685,7 +689,7 @@
   (sale "ir-token-3" "mint-acct-3" 2.0 200))
 
 (expect "offer events"
-  [ {"name": "coin.TRANSFER","params": ["" "buyer-acct-3-1" 100.0]}
+  [ {"name": "coin.TRANSFER","params": ["" "buyer-acct-4" 100.0]}
     {"name": "marmalade.ledger.OFFER","params": ["ir-token-3" "mint-acct-3" 2.0 200]}
     {"name": "marmalade.ledger.SALE","params": ["ir-token-3" "mint-acct-3" 2.0 200 (hash "sale-token-3")]}
     {"name": "imm-rec.policy.QUOTE","params": [(hash "sale-token-3") "ir-token-3" "mint-recipient-3" 2.0 50.0 100.0]}
@@ -696,19 +700,18 @@
 
 
 (env-data
-  { 'buyer: "buyer-acct-3-1"
-  , 'buyer-guard: {'keys: ["buyer-acct-3-1"], 'pred: 'keys-all}
+  { 'buyer: "buyer-acct-4"
+  , 'buyer-guard: {'keys: ["buyer-acct-4"], 'pred: 'keys-all}
   }
 )
 
 (env-sigs [
-  {'key: 'buyer-acct-3-1
+  {'key: 'buyer-acct-4
   ,'caps: [
-     (marmalade.ledger.BUY "ir-token-3" "mint-acct-3" "buyer-acct-3-1" 2.0 200 (hash "sale-token-3"))
-      (coin.TRANSFER "buyer-acct-3-1" "buyer-acct-1-2" 3.333333333333)
-      (coin.TRANSFER "buyer-acct-3-1" "buyer-acct-2-1" 3.333333333333)
-      (coin.TRANSFER "buyer-acct-3-1" "buyer-acct-2-2" 3.333333333333)
-      (coin.TRANSFER "buyer-acct-3-1" "mint-recipient-3" 90.0)
+     (marmalade.ledger.BUY "ir-token-3" "mint-acct-3" "buyer-acct-4" 2.0 200 (hash "sale-token-3"))
+      (coin.TRANSFER "buyer-acct-4" "buyer-acct-2" 6.666666666666)
+      (coin.TRANSFER "buyer-acct-4" "buyer-acct-3" 3.333333333333)
+      (coin.TRANSFER "buyer-acct-4" "mint-recipient-3" 90.0)
      ]
   }])
 
@@ -722,38 +725,43 @@
 
 (expect "buyer account is credited"
   2.0
-  (marmalade.ledger.get-balance "ir-token-3" "buyer-acct-3-1"))
+  (marmalade.ledger.get-balance "ir-token-3" "buyer-acct-4"))
 
 ;; Flooring resulted in 1e-12 coin balance in buyer account
+;; buyer-acct-2 owns weight 1 of ir-token-1, weight 1 of ir-token-2
+;; buyer-acct-3 owns weight 2 of ir-token-2
 (expect "buyer coin account is debited 99.99..%, seller coin account is credited 90%, ir-token-1 owner is credited 3.33..%, ir-token-2 owner is credited 6.66..%"
-  [0.000000000001 90.0 18.333333333333 3.333333333333]
-  (map (coin.get-balance) ["buyer-acct-3-1" "mint-recipient-3" "buyer-acct-1-2" "buyer-acct-2-2"]))
+  [0.000000000001 90.0 116.666666666666 3.333333333333]
+  (map (coin.get-balance) ["buyer-acct-4" "mint-recipient-3" "buyer-acct-2" "buyer-acct-3"]))
 
 (env-data
   { 'seller-guard: {'keys: ["mint-acct-3"], 'pred: 'keys-all}
-  , 'buyer-guard: {'keys: ["buyer-acct-3-1"], 'pred: 'keys-all}
+  , 'buyer-guard: {'keys: ["buyer-acct-4"], 'pred: 'keys-all}
   }
 )
 
 (expect "buy events"
-[ {"name": "marmalade.ledger.BUY","params": ["ir-token-3" "mint-acct-3" "buyer-acct-3-1" 2.0 200 (hash "sale-token-3")]}
-  {"name": "coin.TRANSFER","params": ["buyer-acct-3-1" "buyer-acct-1-2" 3.333333333333]}
-  {"name": "coin.TRANSFER","params": ["buyer-acct-3-1" "buyer-acct-2-1" 3.333333333333]}
-  {"name": "coin.TRANSFER","params": ["buyer-acct-3-1" "buyer-acct-2-2" 3.333333333333]}
-  {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-3" "buyer-acct-3-1" (read-keyset 'buyer-guard) 2.0]}
-  {"name": "coin.TRANSFER","params": ["buyer-acct-3-1" "mint-recipient-3" 90.0]}
-  {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-3" "buyer-acct-3-1" (read-keyset 'buyer-guard)]}
-  {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-3" (sale-account) "buyer-acct-3-1" 2.0]}
-  {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-3" 2.0 {"account": (sale-account),"current": 0.0,"previous": 2.0} {"account": "buyer-acct-3-1","current": 2.0,"previous": 0.0}]}]
+[ {"name": "marmalade.ledger.BUY","params": ["ir-token-3" "mint-acct-3" "buyer-acct-4" 2.0 200 (hash "sale-token-3")]}
+  {"name": "coin.TRANSFER","params": ["buyer-acct-4" "buyer-acct-2" 3.333333333333]}
+  {"name": "coin.TRANSFER","params": ["buyer-acct-4" "buyer-acct-2" 3.333333333333]}
+  {"name": "coin.TRANSFER","params": ["buyer-acct-4" "buyer-acct-3" 3.333333333333]}
+  {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-3" "buyer-acct-4" (read-keyset 'buyer-guard) 2.0]}
+  {"name": "coin.TRANSFER","params": ["buyer-acct-4" "mint-recipient-3" 90.0]}
+  {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-3" "buyer-acct-4" (read-keyset 'buyer-guard)]}
+  {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-3" (sale-account) "buyer-acct-4" 2.0]}
+  {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-3" 2.0 {"account": (sale-account),"current": 0.0,"previous": 2.0} {"account": "buyer-acct-4","current": 2.0,"previous": 0.0}]}]
   (map (remove 'module-hash) (env-events true)))
 
 (commit-tx)
 
 
-
 ;;
 ;; sale token 3-1
-;;
+;; buyer-acct-2 owns 1/1 of token 1 - 3.6 royalty
+;; buyer-acct-2 owns 1/2 of token 2 - 3.6 royalty
+;; buyer-acct-3 owns 1/2 of token 2 - royalty not paid
+;; buyer-acct-4 owns 2/4 of token 3 - 7.2 royalty
+;; 2/4 token 3 is sold from mint-acct-3 to buyer-acct-3
 
 (begin-tx "sale token 3-1")
 (env-hash (hash "sale-token-3-1"))
@@ -762,8 +770,8 @@
 
 
 (env-data
-  { 'buyer: "buyer-acct-3-2"
-  , 'buyer-guard: ["buyer-acct-3-2"] })
+  { 'buyer: "buyer-acct-3"
+  , 'buyer-guard: ["buyer-acct-3"] })
 
 (test-capability (coin.COINBASE))
 (coin.coinbase (read-msg "buyer") (read-keyset 'buyer-guard) 180.0)
@@ -785,7 +793,7 @@
   (sale "ir-token-3" "mint-acct-3" 2.0 200))
 
 (expect "offer events"
-[ {"name": "coin.TRANSFER","params": ["" "buyer-acct-3-2" 180.0]}
+[ {"name": "coin.TRANSFER","params": ["" "buyer-acct-3" 180.0]}
   {"name": "marmalade.ledger.OFFER","params": ["ir-token-3" "mint-acct-3" 2.0 200]}
   {"name": "marmalade.ledger.SALE","params": ["ir-token-3" "mint-acct-3" 2.0 200 (hash "sale-token-3-1")]}
   {"name": "imm-rec.policy.QUOTE","params": [(hash "sale-token-3-1") "ir-token-3" "mint-recipient-3" 2.0 90.0 180.0]}
@@ -795,20 +803,18 @@
   (map (remove 'module-hash) (env-events true)))
 
 (env-data
-  { 'buyer: "buyer-acct-3-2"
-  , 'buyer-guard: {'keys: ["buyer-acct-3-2"], 'pred: 'keys-all}
+  { 'buyer: "buyer-acct-3"
+  , 'buyer-guard: {'keys: ["buyer-acct-3"], 'pred: 'keys-all}
   }
 )
 
 (env-sigs [
-  {'key: 'buyer-acct-3-2
+  {'key: 'buyer-acct-3
   ,'caps: [
-     (marmalade.ledger.BUY "ir-token-3" "mint-acct-3" "buyer-acct-3-2" 2.0 200 (hash "sale-token-3-1"))
-      (coin.TRANSFER "buyer-acct-3-2" "buyer-acct-1-2" 3.6)
-      (coin.TRANSFER "buyer-acct-3-2" "buyer-acct-2-1" 3.6)
-      (coin.TRANSFER "buyer-acct-3-2" "buyer-acct-2-2" 3.6)
-      (coin.TRANSFER "buyer-acct-3-2" "buyer-acct-3-1" 7.2)
-      (coin.TRANSFER "buyer-acct-3-2" "mint-recipient-3" 162.0)
+     (marmalade.ledger.BUY "ir-token-3" "mint-acct-3" "buyer-acct-3" 2.0 200 (hash "sale-token-3-1"))
+      (coin.TRANSFER "buyer-acct-3" "buyer-acct-2" 7.2)
+      (coin.TRANSFER "buyer-acct-3" "buyer-acct-4" 7.2)
+      (coin.TRANSFER "buyer-acct-3" "mint-recipient-3" 162.0)
      ]
   }])
 
@@ -822,25 +828,26 @@
 
 (expect "buyer account is credited"
   2.0
-  (marmalade.ledger.get-balance "ir-token-3" "buyer-acct-3-1"))
+  (marmalade.ledger.get-balance "ir-token-3" "buyer-acct-4"))
 
-;; Flooring resulted in 1e-12 coin balance in buyer account
-(expect "buyer-3-2 debited 180.0, buyer-3-1 credited 7.2, mint-acct-3 not credited, buyer-1-2, buyer-2-1, buyer-2-2, each credited 3.6"
-  [0.000000000000 7.200000000001 252.0 21.933333333333 101.933333333333 6.933333333333]
-  (map (coin.get-balance) ["buyer-acct-3-2" "buyer-acct-3-1" "mint-recipient-3" "buyer-acct-1-2" "buyer-acct-2-1" "buyer-acct-2-2"]))
-
+(expect "buyer-acct-3 is debited 176.4 (3.6 royalty paid to itself) , \
+       \ seller coin account is credited 162.0, \
+       \ buyer-acct-2 (owns 1 of ir-token-1, 1 of ir-token-2) is credited 7.2 for royalty, \
+       \ buyer-acct-3 (owns 1 of ir-token-2)is not credited for royalty because buyer-acct-3 is the buyer, \
+       \ buyer-acct-4 (owns 2 of ir-token-3) is credited 7.2 for royalty"
+  [6.933333333333 252.0 7.200000000001 123.866666666666]
+  (map (coin.get-balance) ["buyer-acct-3" "mint-recipient-3" "buyer-acct-4" "buyer-acct-2"]))
 
 (expect "buy events"
-[ {"name": "marmalade.ledger.BUY","params": ["ir-token-3" "mint-acct-3" "buyer-acct-3-2" 2.0 200 (hash "sale-token-3-1")]}
-  {"name": "coin.TRANSFER","params": ["buyer-acct-3-2" "buyer-acct-1-2" 3.600000000000]}
-  {"name": "coin.TRANSFER","params": ["buyer-acct-3-2" "buyer-acct-2-1" 3.600000000000]}
-  {"name": "coin.TRANSFER","params": ["buyer-acct-3-2" "buyer-acct-2-2" 3.600000000000]}
-  {"name": "coin.TRANSFER","params": ["buyer-acct-3-2" "buyer-acct-3-1" 7.200000000000]}
-  {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-3" "buyer-acct-3-2" (read-keyset 'buyer-guard ) 2.0]}
-  {"name": "coin.TRANSFER","params": ["buyer-acct-3-2" "mint-recipient-3" 162.0]}
-  {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-3" "buyer-acct-3-2" (read-keyset 'buyer-guard) ]}
-  {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-3" (sale-account) "buyer-acct-3-2" 2.0]}
-  {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-3" 2.0 {"account": (sale-account),"current": 0.0,"previous": 2.0} {"account": "buyer-acct-3-2","current": 2.0,"previous": 0.0}]}]
+[ {"name": "marmalade.ledger.BUY","params": ["ir-token-3" "mint-acct-3" "buyer-acct-3" 2.0 200 (hash "sale-token-3-1")]}
+  {"name": "coin.TRANSFER","params": ["buyer-acct-3" "buyer-acct-2" 3.600000000000]}
+  {"name": "coin.TRANSFER","params": ["buyer-acct-3" "buyer-acct-2" 3.600000000000]}
+  {"name": "coin.TRANSFER","params": ["buyer-acct-3" "buyer-acct-4" 7.200000000000]}
+  {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-3" "buyer-acct-3" (read-keyset 'buyer-guard ) 2.0]}
+  {"name": "coin.TRANSFER","params": ["buyer-acct-3" "mint-recipient-3" 162.0]}
+  {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-3" "buyer-acct-3" (read-keyset 'buyer-guard) ]}
+  {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-3" (sale-account) "buyer-acct-3" 2.0]}
+  {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-3" 2.0 {"account": (sale-account),"current": 0.0,"previous": 2.0} {"account": "buyer-acct-3","current": 2.0,"previous": 0.0}]}]
 (map (remove 'module-hash) (env-events true)))
 
 (commit-tx)
