@@ -10,20 +10,21 @@
   (implements kip.token-policy-v1)
   (use kip.token-policy-v1 [token-info])
 
-  (defschema ir-token
+  (defschema ir-owner
     id:string
+    owner:string
+    guard:guard
     weight:integer
   )
 
-  (defschema ir-owner
+  (defschema ir-token
     id:string
-    weight:decimal
-    owner:string
-    guard:guard
+    total-weight:integer
+    curr-owned-weight:integer
+    owners:[object{ir-owner}]
   )
 
   (deftable ir-tokens:{ir-token})
-  (deftable ir-owners:{ir-owner})
 
   (defcap QUOTE:bool
     ( sale-id:string
@@ -57,7 +58,7 @@
 
   (deftable quotes:{quote-schema})
 
-  (defcap UPDATE_OWNER (id:string owner:string guard:guard amount:decimal)
+  (defcap UPDATE_OWNER (id:string owner:string guard:guard new-weight:integer)
     @event true)
 
   (defcap INTERNAL () true)
@@ -84,8 +85,33 @@
     (read ir-tokens (at 'id token))
   )
 
-  (defun get-owner:object{ir-owner} (token:object{token-info} account:string)
-    (read ir-owners (key (at 'id token) account))
+  (defun get-owners:object{ir-owner} (token:object{token-info})
+    (at 'owners (get-policy token))
+  )
+
+  (defun get-owner:list (account:string owners:[object{ir-owner}])
+    (filter (is-owner account) owners)
+  )
+
+  (defun get-owner-weight:integer (account:string owners:[object{ir-owner}])
+    (let ((owner (get-owner account owners)))
+      (if (!= owner [])
+        (at 'weight (at 0 owner))
+        0)))
+
+  (defun is-owner:bool (account:string owner:object{ir-owner})
+    (= account (at 'owner owner))
+  )
+
+  (defun not-owner:bool (account:string owner:object{ir-owner})
+    (!= account (at 'owner owner))
+  )
+
+  (defun not-partial-owner:bool (token:object{token-info} account:string)
+    (let* ( (bal:integer (try 0 (floor (marmalade.ledger.get-balance (at 'id token) account))))
+            (owners:list (get-owners token))
+            (weight:integer (get-owner-weight account owners)))
+      (= weight bal))
   )
 
   (defun enforce-ledger:bool ()
@@ -103,7 +129,11 @@
         (enforce (> weight 0) "Invalid weight")
         (enforce (= precision 0) "Invalid precision")
         (insert ir-tokens id
-          {'weight: weight, 'id: id})
+          { "id" : id,
+            "total-weight" : weight,
+            "curr-owned-weight": 0,
+            "owners" : []
+          })
         (emit-event (TOKEN_WEIGHT id weight))
         true)
       )
@@ -119,37 +149,43 @@
       (let*
         ( (policy (get-policy token)))
         (enforce (= (at 'supply token) 0.0) "enforce 1-off supply")
-        (enforce (= amount (+ 0.0 (at 'weight policy))) "enforce 1-off amount") ;; look for a better way to convert weight into decimal
+        (enforce (= amount (+ 0.0 (at 'total-weight policy))) "enforce 1-off amount") ;; look for a better way to convert weight into decimal
         (with-capability (INTERNAL) (update-owner token account guard 0.0))
       ))
   )
 
-  (defun update-owner (token:object{token-info} account:string guard:guard amount:decimal)
+  (defun update-owner (token:object{token-info} account:string guard:guard amount:decimal) ;integer
     (require-capability (INTERNAL))
     (if (!= amount 0.0)
       (let ((coin-guard:guard (at 'guard (coin.details account))))
         (enforce (= coin-guard guard) "Account guard does not match")
       )
-      true)
-    (with-default-read ir-owners (key (at 'id token) account)
-      { "weight" : -1.0 }
-      { "weight" := weight }
-      (let* ((is-new
-             (if (= weight -1.0)
-                 true
-               false))
-            (new-weight
-             (if is-new amount (+ weight amount))))
-      (enforce (>= new-weight 0.0) "Amount not positive")
-      (write ir-owners (key (at 'id token) account)
-        { "id" : (at 'id token),
-          "weight" : new-weight,
-          "owner" : account,
-          "guard" : guard
-        })
-    ;; IR will make sure that buyers have k: accounts
-    (emit-event (UPDATE_OWNER (at 'id token) account guard new-weight)))) ;; emit guard?
-  )
+    true)
+    (with-read ir-tokens (at 'id token) {
+        "id" := id,
+        "total-weight" := token-weight,
+        "curr-owned-weight":= curr-weight,
+        "owners" := owners
+      }
+      (let* (
+         (owner-weight:integer (get-owner-weight account owners) )
+         (new-weight:integer (floor (+ owner-weight amount)))
+         (new-curr-weight:integer (floor (+ curr-weight amount)))
+         (new-owners (if (> new-weight 0)
+                        (+ [{'id: (at 'id token),
+                             'owner: account,
+                             'guard: guard,
+                             'weight: new-weight}] (filter (not-owner account) owners) )
+                        (filter (not-owner account) owners)
+                        )))
+         (write ir-tokens (at 'id token)
+           { "id" : (at 'id token),
+             "total-weight" : token-weight,
+             "curr-owned-weight": new-curr-weight,
+             "owners" : new-owners
+           })
+       (emit-event (UPDATE_OWNER (at 'id token) account guard new-weight)))
+    ))
 
   (defun enforce-burn:bool
     ( token:object{token-info}
@@ -195,35 +231,49 @@
       sale-id:string )
     (enforce-ledger)
     (enforce-sale-pact sale-id)
-    (bind (get-owner token seller) {'guard := seller-guard, 'weight := seller-weight}
-      (with-read quotes sale-id { 'id := qtoken, 'spec := spec:object{quote-spec} }
+    (with-read ir-tokens (at 'id token) {
+        "id" := id,
+        "total-weight" := token-weight, ;; not used
+        "owners" := owners
+      }
+      (with-read quotes sale-id {
+        'id := qtoken,
+        'spec := spec:object{quote-spec}
+        }
         (enforce (= qtoken (at 'id token)) "incorrect sale token")
         (bind spec
           { 'price := price:decimal
           , 'recipient := recipient:string
           }
-          (with-capability (INTERNAL)
-            (if (> seller-weight 0.0)
-              (update-owner token seller seller-guard (* -1.0 amount))
+        (with-capability (INTERNAL)
+          (let*
+            ( (owner-type (not-partial-owner token buyer))
+              (owner:list (get-owner seller owners))
+            )
+            (enforce owner-type "Partial owner is restricted from buying")
+            (if (> (length owner) 0)
+              (update-owner token seller (at 'guard (at 0 owner)) (* -1.0 amount))
+              true
+            ))
+          (let*
+            ( (tokens:list (select ir-tokens (where 'curr-owned-weight (!= 0))))
+              (sale-price:decimal (* amount price))
+              (total-owned:decimal (fold (+) 0.0 (map (at 'curr-owned-weight ) tokens)))
+              (share (* sale-price ROYALTY))
+              (balance:decimal (if (> total-owned 0.0) (- sale-price share) sale-price)))
+            (coin.enforce-unit sale-price)
+            (if (> total-owned 0.0)
+              (map (credit-owner buyer share total-owned) (fold (+) [] (map (at 'owners) tokens)))
               true)
-            (let*
-              ( (owned (select ir-owners (where 'weight (!= 0.0))))
-                (sale-price (* amount price))
-                (total-owned (fold (+) 0.0 (map (at 'weight ) owned)))
-                (share (* sale-price ROYALTY))
-                (balance (if (> total-owned 0.0) (- sale-price share) sale-price)))
-              (coin.enforce-unit sale-price)
-              (if (> total-owned 0.0)
-                (map (credit-owner buyer share total-owned) owned)
-                true)
-              (update-owner token buyer buyer-guard amount)
-              (coin.transfer buyer recipient balance))))))
-  )
+            (update-owner token buyer buyer-guard amount)
+            (coin.transfer buyer recipient balance)
+         )
+    )))))
 
   (defun credit-owner (buyer:string share:decimal total-owned:decimal owner:object{ir-owner})
     (require-capability (INTERNAL))
     (if (!= buyer (at 'owner owner))
-      (coin.transfer buyer (at 'owner owner) (floor (* share (/ (at 'weight owner) total-owned)) (coin.precision)))
+      (coin.transfer buyer (at 'owner owner) (floor  (/ (* share (at 'weight owner)) total-owned) (coin.precision)))
       true)
   )
 
@@ -256,5 +306,4 @@
 (if (read-msg 'upgrade)
   ["upgrade complete"]
   [ (create-table quotes)
-    (create-table ir-tokens)
-    (create-table ir-owners) ])
+    (create-table ir-tokens) ])

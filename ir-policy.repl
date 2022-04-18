@@ -1,4 +1,5 @@
 (begin-tx)
+
 (env-data
   { 'ns-admin-keyset: []
   , 'ns-genesis-keyset:[]
@@ -26,16 +27,12 @@
 (define-keyset 'marmalade-admin)
 (load "marmalade/ledger.pact")
 
-(commit-tx)
-
-
-(begin-tx)
 (env-data
  { 'ir-admin: ["ir-admin"]
  , 'ns: "imm-rec"
  , 'upgrade: false
 })
-(env-keys ['ir-admin])
+(env-keys ['ir-admin ])
 (load "ns-ir.pact")
 (load "ir-policy.pact")
 (commit-tx)
@@ -52,6 +49,7 @@
 
 (env-sigs [{'key: 'other, 'caps: [(CREATE_TOKEN "ir-token-1")]}])
 (env-data { 'weight: 0.1 })
+
 (expect-failure "Create token without ir-admin fails"
   "Keyset failure"
   (create-token "ir-token-1"
@@ -88,9 +86,9 @@
     0 (create-manifest (uri "text" "ir-token-1") []) imm-rec.policy))
 
 (expect "create token 1 events"
-  [{"name": "imm-rec.policy.TOKEN_WEIGHT","params": ["ir-token-1" 1]}
-   {"name": "marmalade.ledger.TOKEN","params":  ["ir-token-1" 0 0.0 imm-rec.policy]}]
-  (map (remove 'module-hash) (env-events true)))
+  [ {"name": "imm-rec.policy.TOKEN_WEIGHT","params": ["ir-token-1" 1]}
+    {"name": "marmalade.ledger.TOKEN","params":  ["ir-token-1" 0 0.0 imm-rec.policy]}]
+    (map (remove 'module-hash) (env-events true)))
 
 (env-sigs [{'key: 'ir-admin,
   'caps: [(CREATE_TOKEN "ir-token-2")]}])
@@ -103,9 +101,9 @@
     0 (create-manifest (uri "text" "ir-token-2") []) imm-rec.policy))
 
 (expect "create token 2 events"
-  [{"name": "imm-rec.policy.TOKEN_WEIGHT","params": ["ir-token-2" 2]}
-   {"name": "marmalade.ledger.TOKEN","params": ["ir-token-2" 0 0.0 imm-rec.policy]}]
-  (map (remove 'module-hash) (env-events true)))
+  [ {"name": "imm-rec.policy.TOKEN_WEIGHT","params": ["ir-token-2" 2]}
+    {"name": "marmalade.ledger.TOKEN","params": ["ir-token-2" 0 0.0 imm-rec.policy]}]
+      (map (remove 'module-hash) (env-events true)))
 
 (env-sigs [{'key: 'ir-admin,
   'caps: [(CREATE_TOKEN "ir-token-3")]}])
@@ -118,9 +116,25 @@
     0 (create-manifest (uri "text" "ir-token-3") []) imm-rec.policy))
 
 (expect "create token 3 events"
-  [{"name": "imm-rec.policy.TOKEN_WEIGHT","params": ["ir-token-3" 4]}
-   {"name": "marmalade.ledger.TOKEN","params": ["ir-token-3" 0 0.0 imm-rec.policy]}]
-  (map (remove 'module-hash) (env-events true)))
+  [ {"name": "imm-rec.policy.TOKEN_WEIGHT","params": ["ir-token-3" 4]}
+    {"name": "marmalade.ledger.TOKEN","params": ["ir-token-3" 0 0.0 imm-rec.policy]}]
+    (map (remove 'module-hash) (env-events true)))
+
+
+(env-sigs [{'key: 'ir-admin,
+  'caps: [(CREATE_TOKEN "ir-token-4")]}])
+
+(env-data { 'weight: 10.0 })
+
+(expect "Create token 4 succeeds"
+  true
+  (create-token "ir-token-4"
+    0 (create-manifest (uri "text" "ir-token-4") []) imm-rec.policy))
+
+(expect "create token 4 events"
+  [ {"name": "imm-rec.policy.TOKEN_WEIGHT","params": ["ir-token-4" 10]}
+    {"name": "marmalade.ledger.TOKEN","params": ["ir-token-4" 0 0.0 imm-rec.policy]}]
+    (map (remove 'module-hash) (env-events true)))
 
 (commit-tx)
 
@@ -182,11 +196,11 @@
 
 (expect "mint events"
   [ {"name": "marmalade.ledger.MINT","params": ["ir-token-1" "mint-acct-1" 1.0]}
-    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-1" "mint-acct-1" (read-keyset 'mint-acct-keyset) 0.0]}
+    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-1" "mint-acct-1" (read-keyset 'mint-acct-keyset) 0]}
     {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-1" "mint-acct-1" (read-keyset 'mint-acct-keyset)]}
     {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-1" 1.0 {"account": "","current": 0.0,"previous": 0.0} {"account": "mint-acct-1","current": 1.0,"previous": 0.0}]}
     {"name": "marmalade.ledger.SUPPLY","params": ["ir-token-1" 1.0]}]
-  (map (remove 'module-hash) (env-events true)))
+          (map (remove 'module-hash) (env-events true)))
 
 (commit-tx)
 
@@ -254,7 +268,7 @@
     {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-1" (sale-account) (create-pact-guard 'SALE )]}
     {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-1" "mint-acct-1" (sale-account) 1.0]}
     {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-1" 1.0 {"account": "mint-acct-1","current": 0.0,"previous": 1.0} {"account": (sale-account),"current": 1.0,"previous": 0.0}]}]
-  (map (remove 'module-hash) (env-events true)))
+        (map (remove 'module-hash) (env-events true)))
 
 (env-data
   { 'buyer: "buyer-acct-1"
@@ -269,9 +283,20 @@
     ,(coin.TRANSFER "buyer-acct-1" "mint-acct-1" 100.0) ]
   }])
 
+
+(env-gasmodel "table")
+(env-gaslimit 50000)
+(env-gas 0)
+(env-gaslog)
+
 (expect "buy succeeds"
   true
   (continue-pact 1))
+
+(expect "Gas Estimate of Buy"
+  "TOTAL: 41652"
+  (at 0 (env-gaslog))
+)
 
 (expect "seller account is debited"
   0.0
@@ -293,12 +318,12 @@
 
 (expect "buy events"
   [ {"name": "marmalade.ledger.BUY","params": ["ir-token-1" "mint-acct-1" "buyer-acct-1" 1.0 200 (hash "sale-token-1")]}
-    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-1" "buyer-acct-1" (read-keyset 'buyer-guard) 1.0]}
+    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-1" "buyer-acct-1" (read-keyset 'buyer-guard) 1]}
     {"name": "coin.TRANSFER","params": ["buyer-acct-1" "mint-acct-1" 100.0]}
     {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-1" "buyer-acct-1" (read-keyset 'buyer-guard)]}
     {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-1" (sale-account) "buyer-acct-1" 1.0]}
     {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-1" 1.0 {"account": (sale-account),"current": 0.0,"previous": 1.0} {"account": "buyer-acct-1","current": 1.0,"previous": 0.0}]}]
-    (map (remove 'module-hash) (env-events true)))
+        (map (remove 'module-hash) (env-events true)))
 
 (commit-tx)
 
@@ -344,7 +369,7 @@
     {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-1" (sale-account) (create-pact-guard 'SALE)]}
     {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-1" "buyer-acct-1" (sale-account) 1.0]}
     {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-1" 1.0 {"account": "buyer-acct-1","current": 0.0,"previous": 1.0} {"account": (sale-account),"current": 1.0,"previous": 0.0}]}]
- (map (remove 'module-hash) (env-events true)))
+     (map (remove 'module-hash) (env-events true)))
 
 (env-data
   { 'buyer: "buyer-acct-2"
@@ -359,9 +384,19 @@
     ,(coin.TRANSFER "buyer-acct-2" "buyer-acct-1" 100.0) ]
   }])
 
+(env-gasmodel "table")
+(env-gaslimit 50000)
+(env-gas 0)
+(env-gaslog)
+
 (expect "buy succeeds"
   true
   (continue-pact 1))
+
+(expect "Gas Estimate of Buy"
+  "TOTAL: 41931"
+  (at 0 (env-gaslog))
+)
 
 (expect "seller account is debited"
   0.0
@@ -383,13 +418,13 @@
 
 (expect "buy events"
   [ {"name": "marmalade.ledger.BUY","params": ["ir-token-1" "buyer-acct-1" "buyer-acct-2" 1.0 200 (hash "sale-token-1-1")]}
-    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-1" "buyer-acct-1" (read-keyset 'seller-guard) 0.0]}
-    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-1" "buyer-acct-2" (read-keyset 'buyer-guard) 1.0]}
+    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-1" "buyer-acct-1" (read-keyset 'seller-guard) 0]}
+    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-1" "buyer-acct-2" (read-keyset 'buyer-guard) 1]}
     {"name": "coin.TRANSFER","params": ["buyer-acct-2" "buyer-acct-1" 100.0]}
     {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-1" "buyer-acct-2" (read-keyset 'buyer-guard)]}
     {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-1" (sale-account) "buyer-acct-2" 1.0]}
     {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-1" 1.0 {"account": (sale-account),"current": 0.0,"previous": 1.0} {"account": "buyer-acct-2","current": 1.0,"previous": 0.0}]}]
-    (map (remove 'module-hash) (env-events true)))
+      (map (remove 'module-hash) (env-events true)))
 
 (commit-tx)
 
@@ -416,11 +451,11 @@
 
 (expect "mint events"
   [ {"name": "marmalade.ledger.MINT","params": ["ir-token-2" "mint-acct-2" 2.0]}
-    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-2" "mint-acct-2" (read-keyset 'mint-acct-keyset) 0.0]}
+    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-2" "mint-acct-2" (read-keyset 'mint-acct-keyset) 0]}
     {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-2" "mint-acct-2" (read-keyset 'mint-acct-keyset)]}
     {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-2" 2.0 {"account": "","current": 0.0,"previous": 0.0} {"account": "mint-acct-2","current": 2.0,"previous": 0.0}]}
     {"name": "marmalade.ledger.SUPPLY","params": ["ir-token-2" 2.0]}]
-  (map (remove 'module-hash) (env-events true)))
+    (map (remove 'module-hash) (env-events true)))
 
 (commit-tx)
 
@@ -468,7 +503,7 @@
    {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-2" (sale-account) (create-pact-guard 'SALE)]}
    {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-2" "mint-acct-2" (sale-account) 2.0]}
    {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-2" 2.0 {"account": "mint-acct-2","current": 0.0,"previous": 2.0} {"account": (sale-account),"current": 2.0,"previous": 0.0}]}]
-  (map (remove 'module-hash) (env-events true)))
+   (map (remove 'module-hash) (env-events true)))
 
 (env-data
   { 'buyer: "buyer-acct-2"
@@ -485,9 +520,19 @@
     ]
   }])
 
+(env-gasmodel "table")
+(env-gaslimit 50000)
+(env-gas 0)
+(env-gaslog)
+
 (expect "buy succeeds"
   true
   (continue-pact 1))
+
+(expect "Gas Estimate of Buy"
+  "TOTAL: 41680"
+  (at 0 (env-gaslog))
+)
 
 (expect "seller account is debited 2.0"
   0.0
@@ -509,16 +554,14 @@
 
 (expect "buy events"
   [ {"name": "marmalade.ledger.BUY","params": ["ir-token-2" "mint-acct-2" "buyer-acct-2" 2.0 200 (hash "sale-token-2")]}
-    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-2" "buyer-acct-2" (read-keyset 'buyer-guard) 2.0]}
+    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-2" "buyer-acct-2" (read-keyset 'buyer-guard) 2]}
     {"name": "coin.TRANSFER","params": ["buyer-acct-2" "mint-recipient-2" 90.0]}
     {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-2" "buyer-acct-2" (read-keyset 'buyer-guard)]}
     {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-2" (sale-account) "buyer-acct-2" 2.0]}
     {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-2" 2.0 {"account": (sale-account),"current": 0.0,"previous": 2.0} {"account": "buyer-acct-2","current": 2.0,"previous": 0.0}]}]
-  (map (remove 'module-hash) (env-events true)))
+      (map (remove 'module-hash) (env-events true)))
 
 (commit-tx)
-
-
 
 ;;
 ;; mint token 3
@@ -545,11 +588,11 @@
 
 (expect "mint events"
   [ {"name": "marmalade.ledger.MINT","params": ["ir-token-3" "mint-acct-3" 4.0]}
-    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-3" "mint-acct-3" (read-keyset 'mint-acct-keyset) 0.0]}
+    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-3" "mint-acct-3" (read-keyset 'mint-acct-keyset) 0]}
     {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-3" "mint-acct-3" (read-keyset 'mint-acct-keyset )]}
     {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-3" 4.0 {"account": "","current": 0.0,"previous": 0.0} {"account": "mint-acct-3","current": 4.0,"previous": 0.0}]}
     {"name": "marmalade.ledger.SUPPLY","params": ["ir-token-3" 4.0]}]
-  (map (remove 'module-hash) (env-events true)))
+    (map (remove 'module-hash) (env-events true)))
 
 (commit-tx)
 
@@ -588,14 +631,14 @@
   (sale "ir-token-2" "buyer-acct-2" 1.0 200))
 
 (expect "offer events"
- [{"name": "coin.TRANSFER","params": ["" "buyer-acct-3" 100.0]}
-  {"name": "marmalade.ledger.OFFER","params": ["ir-token-2" "buyer-acct-2" 1.0 200]}
-  {"name": "marmalade.ledger.SALE","params": ["ir-token-2" "buyer-acct-2" 1.0 200 (hash "sale-token-2-1")]}
-  {"name": "imm-rec.policy.QUOTE","params": [(hash "sale-token-2-1") "ir-token-2" "buyer-acct-2" 1.0 100.0 100.0]}
-  {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-2" (sale-account) (create-pact-guard 'SALE)]}
-  {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-2" "buyer-acct-2" (sale-account) 1.0]}
-  {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-2" 1.0 {"account": "buyer-acct-2","current": 1.0,"previous": 2.0} {"account": (sale-account),"current": 1.0,"previous": 0.0}]}]
-  (map (remove 'module-hash) (env-events true)))
+  [ {"name": "coin.TRANSFER","params": ["" "buyer-acct-3" 100.0]}
+    {"name": "marmalade.ledger.OFFER","params": ["ir-token-2" "buyer-acct-2" 1.0 200]}
+    {"name": "marmalade.ledger.SALE","params": ["ir-token-2" "buyer-acct-2" 1.0 200 (hash "sale-token-2-1")]}
+    {"name": "imm-rec.policy.QUOTE","params": [(hash "sale-token-2-1") "ir-token-2" "buyer-acct-2" 1.0 100.0 100.0]}
+    {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-2" (sale-account) (create-pact-guard 'SALE)]}
+    {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-2" "buyer-acct-2" (sale-account) 1.0]}
+    {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-2" 1.0 {"account": "buyer-acct-2","current": 1.0,"previous": 2.0} {"account": (sale-account),"current": 1.0,"previous": 0.0}]}]
+      (map (remove 'module-hash) (env-events true)))
 
 (env-data
   { 'buyer: "buyer-acct-3"
@@ -611,9 +654,19 @@
      ]
   }])
 
+(env-gasmodel "table")
+(env-gaslimit 50000)
+(env-gas 0)
+(env-gaslog)
+
 (expect "buy succeeds"
   true
   (continue-pact 1))
+
+(expect "Gas Estimate of Buy"
+  "TOTAL: 43189"
+  (at 0 (env-gaslog))
+)
 
 (expect "seller account is debited 1.0"
   1.0
@@ -635,16 +688,16 @@
 )
 
 (expect "buy events"
-[ {"name": "marmalade.ledger.BUY","params": ["ir-token-2" "buyer-acct-2" "buyer-acct-3" 1.0 200 (hash "sale-token-2-1")]}
-  {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-2" "buyer-acct-2" (read-keyset 'seller-guard ) 1.0]}
-  {"name": "coin.TRANSFER","params": ["buyer-acct-3" "buyer-acct-2" 5.0]}
-  {"name": "coin.TRANSFER","params": ["buyer-acct-3" "buyer-acct-2" 5.0]}
-  {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-2" "buyer-acct-3" (read-keyset 'buyer-guard ) 1.0]}
-  {"name": "coin.TRANSFER","params": ["buyer-acct-3" "buyer-acct-2" 90.0]}
-  {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-2" "buyer-acct-3" (read-keyset 'buyer-guard )]}
-  {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-2" (sale-account) "buyer-acct-3" 1.0]}
-  {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-2" 1.0 {"account": (sale-account),"current": 0.0,"previous": 1.0} {"account": "buyer-acct-3","current": 1.0,"previous": 0.0}]}]
-  (map (remove 'module-hash) (env-events true)))
+  [ {"name": "marmalade.ledger.BUY","params": ["ir-token-2" "buyer-acct-2" "buyer-acct-3" 1.0 200 (hash "sale-token-2-1")]}
+    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-2" "buyer-acct-2" (read-keyset 'seller-guard ) 1]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-3" "buyer-acct-2" 5.0]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-3" "buyer-acct-2" 5.0]}
+    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-2" "buyer-acct-3" (read-keyset 'buyer-guard ) 1]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-3" "buyer-acct-2" 90.0]}
+    {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-2" "buyer-acct-3" (read-keyset 'buyer-guard )]}
+    {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-2" (sale-account) "buyer-acct-3" 1.0]}
+    {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-2" 1.0 {"account": (sale-account),"current": 0.0,"previous": 1.0} {"account": "buyer-acct-3","current": 1.0,"previous": 0.0}]}]
+(map (remove 'module-hash) (env-events true)))
 
 (commit-tx)
 
@@ -696,7 +749,7 @@
     {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-3" (sale-account) (create-pact-guard 'SALE)]}
     {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-3" "mint-acct-3" (sale-account) 2.0]}
     {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-3" 2.0 {"account": "mint-acct-3","current": 2.0,"previous": 4.0} {"account": (sale-account),"current": 2.0,"previous": 0.0}]}]
-  (map (remove 'module-hash) (env-events true)))
+(map (remove 'module-hash) (env-events true)))
 
 
 (env-data
@@ -715,9 +768,19 @@
      ]
   }])
 
+(env-gasmodel "table")
+(env-gaslimit 50000)
+(env-gas 0)
+(env-gaslog)
+
 (expect "buy succeeds"
   true
   (continue-pact 1))
+
+(expect "Gas Estimate of Buy"
+  "TOTAL: 43318"
+  (at 0 (env-gaslog))
+)
 
 (expect "seller account is debited"
   2.0
@@ -741,16 +804,16 @@
 )
 
 (expect "buy events"
-[ {"name": "marmalade.ledger.BUY","params": ["ir-token-3" "mint-acct-3" "buyer-acct-4" 2.0 200 (hash "sale-token-3")]}
-  {"name": "coin.TRANSFER","params": ["buyer-acct-4" "buyer-acct-2" 3.333333333333]}
-  {"name": "coin.TRANSFER","params": ["buyer-acct-4" "buyer-acct-2" 3.333333333333]}
-  {"name": "coin.TRANSFER","params": ["buyer-acct-4" "buyer-acct-3" 3.333333333333]}
-  {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-3" "buyer-acct-4" (read-keyset 'buyer-guard) 2.0]}
-  {"name": "coin.TRANSFER","params": ["buyer-acct-4" "mint-recipient-3" 90.0]}
-  {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-3" "buyer-acct-4" (read-keyset 'buyer-guard)]}
-  {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-3" (sale-account) "buyer-acct-4" 2.0]}
-  {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-3" 2.0 {"account": (sale-account),"current": 0.0,"previous": 2.0} {"account": "buyer-acct-4","current": 2.0,"previous": 0.0}]}]
-  (map (remove 'module-hash) (env-events true)))
+  [ {"name": "marmalade.ledger.BUY","params": ["ir-token-3" "mint-acct-3" "buyer-acct-4" 2.0 200 (hash "sale-token-3")]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-4" "buyer-acct-2" 3.333333333333]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-4" "buyer-acct-3" 3.333333333333]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-4" "buyer-acct-2" 3.333333333333]}
+    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-3" "buyer-acct-4" (read-keyset 'buyer-guard) 2]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-4" "mint-recipient-3" 90.0]}
+    {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-3" "buyer-acct-4" (read-keyset 'buyer-guard)]}
+    {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-3" (sale-account) "buyer-acct-4" 2.0]}
+    {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-3" 2.0 {"account": (sale-account),"current": 0.0,"previous": 2.0} {"account": "buyer-acct-4","current": 2.0,"previous": 0.0}]}]
+(map (remove 'module-hash) (env-events true)))
 
 (commit-tx)
 
@@ -793,14 +856,14 @@
   (sale "ir-token-3" "mint-acct-3" 2.0 200))
 
 (expect "offer events"
-[ {"name": "coin.TRANSFER","params": ["" "buyer-acct-3" 180.0]}
-  {"name": "marmalade.ledger.OFFER","params": ["ir-token-3" "mint-acct-3" 2.0 200]}
-  {"name": "marmalade.ledger.SALE","params": ["ir-token-3" "mint-acct-3" 2.0 200 (hash "sale-token-3-1")]}
-  {"name": "imm-rec.policy.QUOTE","params": [(hash "sale-token-3-1") "ir-token-3" "mint-recipient-3" 2.0 90.0 180.0]}
-  {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-3" (sale-account) (create-pact-guard 'SALE)]}
-  {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-3" "mint-acct-3" (sale-account) 2.0]}
-  {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-3" 2.0 {"account": "mint-acct-3","current": 0.0,"previous": 2.0} {"account": (sale-account),"current": 2.0,"previous": 0.0}]}]
-  (map (remove 'module-hash) (env-events true)))
+  [ {"name": "coin.TRANSFER","params": ["" "buyer-acct-3" 180.0]}
+    {"name": "marmalade.ledger.OFFER","params": ["ir-token-3" "mint-acct-3" 2.0 200]}
+    {"name": "marmalade.ledger.SALE","params": ["ir-token-3" "mint-acct-3" 2.0 200 (hash "sale-token-3-1")]}
+    {"name": "imm-rec.policy.QUOTE","params": [(hash "sale-token-3-1") "ir-token-3" "mint-recipient-3" 2.0 90.0 180.0]}
+    {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-3" (sale-account) (create-pact-guard 'SALE)]}
+    {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-3" "mint-acct-3" (sale-account) 2.0]}
+    {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-3" 2.0 {"account": "mint-acct-3","current": 0.0,"previous": 2.0} {"account": (sale-account),"current": 2.0,"previous": 0.0}]}]
+(map (remove 'module-hash) (env-events true)))
 
 (env-data
   { 'buyer: "buyer-acct-3"
@@ -818,9 +881,19 @@
      ]
   }])
 
+(env-gasmodel "table")
+(env-gaslimit 50000)
+(env-gas 0)
+(env-gaslog)
+
 (expect "buy succeeds"
   true
   (continue-pact 1))
+
+(expect "Gas Estimate of Buy"
+  "TOTAL: 43451"
+  (at 0 (env-gaslog))
+)
 
 (expect "seller account is debited"
   0.0
@@ -839,15 +912,749 @@
   (map (coin.get-balance) ["buyer-acct-3" "mint-recipient-3" "buyer-acct-4" "buyer-acct-2"]))
 
 (expect "buy events"
-[ {"name": "marmalade.ledger.BUY","params": ["ir-token-3" "mint-acct-3" "buyer-acct-3" 2.0 200 (hash "sale-token-3-1")]}
-  {"name": "coin.TRANSFER","params": ["buyer-acct-3" "buyer-acct-2" 3.600000000000]}
-  {"name": "coin.TRANSFER","params": ["buyer-acct-3" "buyer-acct-2" 3.600000000000]}
-  {"name": "coin.TRANSFER","params": ["buyer-acct-3" "buyer-acct-4" 7.200000000000]}
-  {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-3" "buyer-acct-3" (read-keyset 'buyer-guard ) 2.0]}
-  {"name": "coin.TRANSFER","params": ["buyer-acct-3" "mint-recipient-3" 162.0]}
-  {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-3" "buyer-acct-3" (read-keyset 'buyer-guard) ]}
-  {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-3" (sale-account) "buyer-acct-3" 2.0]}
-  {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-3" 2.0 {"account": (sale-account),"current": 0.0,"previous": 2.0} {"account": "buyer-acct-3","current": 2.0,"previous": 0.0}]}]
-(map (remove 'module-hash) (env-events true)))
+  [ {"name": "marmalade.ledger.BUY","params": ["ir-token-3" "mint-acct-3" "buyer-acct-3" 2.0 200 (hash "sale-token-3-1")]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-3" "buyer-acct-2" 3.600000000000]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-3" "buyer-acct-2" 3.600000000000]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-3" "buyer-acct-4" 7.200000000000]}
+    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-3" "buyer-acct-3" (read-keyset 'buyer-guard ) 2]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-3" "mint-recipient-3" 162.0]}
+    {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-3" "buyer-acct-3" (read-keyset 'buyer-guard) ]}
+    {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-3" (sale-account) "buyer-acct-3" 2.0]}
+    {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-3" 2.0 {"account": (sale-account),"current": 0.0,"previous": 2.0} {"account": "buyer-acct-3","current": 2.0,"previous": 0.0}]}]
+  (map (remove 'module-hash) (env-events true)))
+
+(commit-tx)
+
+;;
+;; sale token 3-2
+;; buyer-acct-2 owns 1/1 of token 1 - 1.5 royalty
+;; buyer-acct-2 owns 1/2 of token 2 - 1.5 royalty
+;; buyer-acct-3 owns 1/2 of token 2 - 1.5 royalty
+;; buyer-acct-4 owns 2/4 of token 3 - royalty not paid
+;; buyer-acct-3 owns 1/4 of token 3 - 1.5 royalty
+;; 1/4 token 3 is sold from buyer-acct-3 to buyer-acct-4
+
+(begin-tx "sale token 3-2")
+(env-hash (hash "sale-token-3-2"))
+(use imm-rec.policy)
+(use marmalade.ledger)
+
+(env-data
+  { 'buyer: "buyer-acct-4"
+  , 'buyer-guard: ["buyer-acct-4"] })
+
+(test-capability (coin.COINBASE))
+(coin.coinbase (read-msg "buyer") (read-keyset 'buyer-guard) 180.0)
+
+(env-data
+  { 'quote: {
+      'price: 90.0
+    , 'recipient: "buyer-acct-3"
+    , 'recipient-guard: {'keys: ["buyer-acct-3"], 'pred: 'keys-all}
+    }})
+
+(env-sigs [
+  { 'key: 'buyer-acct-3
+  , 'caps: [(marmalade.ledger.OFFER "ir-token-3" "buyer-acct-3" 1.0 200)]
+  }])
+
+(expect "offer succeeds"
+  true
+  (sale "ir-token-3" "buyer-acct-3" 1.0 200))
+
+(env-data
+  { 'buyer: "buyer-acct-4"
+  , 'buyer-guard: {'keys: ["buyer-acct-4"], 'pred: 'keys-all}
+  }
+)
+
+(env-sigs [
+  {'key: 'buyer-acct-4
+  ,'caps: [
+     (marmalade.ledger.BUY "ir-token-3" "buyer-acct-3" "buyer-acct-4" 1.0 200 (hash "sale-token-3-2"))
+      (coin.TRANSFER "buyer-acct-4" "buyer-acct-3" 84.0)
+      (coin.TRANSFER "buyer-acct-4" "buyer-acct-2" 3.0)
+     ]
+  }])
+
+(env-gasmodel "table")
+(env-gaslimit 50000)
+(env-gas 0)
+(env-gaslog)
+
+(expect "buy succeeds"
+  true
+  (continue-pact 1))
+
+(expect "Gas Estimate of Buy"
+  "TOTAL: 44431"
+  (at 0 (env-gaslog))
+)
+
+(commit-tx)
+
+;;
+;; sale token 3-3
+;; buyer-acct-2 owns 1/1 of token 1 - 1.5 royalty
+;; buyer-acct-2 owns 1/2 of token 2 - 1.5 royalty
+;; buyer-acct-3 owns 1/2 of token 2 - 1.5 royalty
+;; buyer-acct-4 owns 2/4 of token 3 - 3.0 royalty
+;; buyer-acct-3 owns 1/4 of token 3 - 1.5 royalty
+;; 1/4 token 3 is sold from buyer-acct-4 to buyer-acct-5
+;;
+
+(begin-tx "sale token 3-3")
+(env-hash (hash "sale-token-3-3"))
+(use imm-rec.policy)
+(use marmalade.ledger)
+(env-data
+  { 'buyer: "buyer-acct-5"
+  , 'buyer-guard: ["buyer-acct-5"] })
+
+(test-capability (coin.COINBASE))
+(coin.coinbase (read-msg "buyer") (read-keyset 'buyer-guard) 180.0)
+
+(env-data
+  { 'quote: {
+      'price: 90.0
+    , 'recipient: "buyer-acct-4"
+    , 'recipient-guard: {'keys: ["buyer-acct-4"], 'pred: 'keys-all}
+    }})
+
+(env-sigs [
+  { 'key: 'buyer-acct-4
+  , 'caps: [(marmalade.ledger.OFFER "ir-token-3" "buyer-acct-4" 1.0 200)]
+  }])
+
+(expect "offer succeeds"
+  true
+  (sale "ir-token-3" "buyer-acct-4" 1.0 200))
+
+(expect "offer events"
+  [ {"name": "coin.TRANSFER","params": ["" "buyer-acct-5" 180.0]}
+    {"name": "marmalade.ledger.OFFER","params": ["ir-token-3" "buyer-acct-4" 1.0 200]}
+    {"name": "marmalade.ledger.SALE","params": ["ir-token-3" "buyer-acct-4" 1.0 200 (hash "sale-token-3-3")]}
+    {"name": "imm-rec.policy.QUOTE","params": [(hash "sale-token-3-3") "ir-token-3" "buyer-acct-4" 1.0 90.0 90.0]}
+    {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-3" (sale-account) (create-pact-guard 'SALE )]}
+    {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-3" "buyer-acct-4" (sale-account) 1.0]}
+    {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-3" 1.0 {"account": "buyer-acct-4","current": 2.0,"previous": 3.0} {"account": (sale-account),"current": 1.0,"previous": 0.0}]}]
+    (map (remove 'module-hash) (env-events true)))
+
+(env-data
+  { 'buyer: "buyer-acct-5"
+  , 'buyer-guard: {'keys: ["buyer-acct-5"], 'pred: 'keys-all}
+  }
+)
+
+(env-sigs [
+  {'key: 'buyer-acct-5
+  ,'caps: [
+     (marmalade.ledger.BUY "ir-token-3" "buyer-acct-4" "buyer-acct-5" 1.0 200 (hash "sale-token-3-3"))
+      (coin.TRANSFER "buyer-acct-5" "buyer-acct-4" 84.0)
+      (coin.TRANSFER "buyer-acct-5" "buyer-acct-3" 3.0)
+      (coin.TRANSFER "buyer-acct-5" "buyer-acct-2" 3.0)
+     ]
+  }])
+
+(env-gasmodel "table")
+(env-gaslimit 50000)
+(env-gas 0)
+(env-gaslog)
+
+(expect "buy succeeds"
+  true
+  (continue-pact 1))
+
+(expect "Gas Estimate of Buy"
+  "TOTAL: 45060"
+  (at 0 (env-gaslog))
+)
+
+(env-data
+  { 'seller-guard: {'keys: ["buyer-acct-4"], 'pred: 'keys-all}
+  , 'buyer-guard: {'keys: ["buyer-acct-5"], 'pred: 'keys-all}
+  }
+)
+
+(expect "buy events"
+  [ {"name": "marmalade.ledger.BUY","params": ["ir-token-3" "buyer-acct-4" "buyer-acct-5" 1.0 200 (hash "sale-token-3-3")]}
+    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-3" "buyer-acct-4" (read-keyset 'seller-guard) 2]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-5" "buyer-acct-2" 1.500000000000]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-5" "buyer-acct-3" 1.500000000000]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-5" "buyer-acct-2" 1.500000000000]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-5" "buyer-acct-4" 3.000000000000]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-5" "buyer-acct-3" 1.500000000000]}
+    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-3" "buyer-acct-5" (read-keyset 'buyer-guard) 1]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-5" "buyer-acct-4" 81.0]}
+    {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-3" "buyer-acct-5" (read-keyset 'buyer-guard)]}
+    {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-3" (sale-account) "buyer-acct-5" 1.0]}
+    {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-3" 1.0 {"account": (sale-account),"current": 0.0,"previous": 1.0} {"account": "buyer-acct-5","current": 1.0,"previous": 0.0}]}]
+    (map (remove 'module-hash) (env-events true)))
+
+(commit-tx)
+
+;;
+;; sale token 3-4
+;; buyer-acct-2 owns 1/1 of token 1 - 1.5 royalty
+;; buyer-acct-2 owns 1/2 of token 2 - 1.5 royalty
+;; buyer-acct-3 owns 1/2 of token 2 - 1.5 royalty
+;; buyer-acct-4 owns 2/4 of token 3 - 3.0 royalty
+;; buyer-acct-3 owns 1/4 of token 3 - 1.5 royalty
+;; 1/4 token 3 is sold from buyer-acct-5 to buyer-acct-6
+;;
+
+(begin-tx "sale token 3-4")
+(env-hash (hash "sale-token-3-4"))
+(use imm-rec.policy)
+(use marmalade.ledger)
+
+(env-data
+  { 'buyer: "buyer-acct-6"
+  , 'buyer-guard: ["buyer-acct-6"] })
+
+(test-capability (coin.COINBASE))
+(coin.coinbase (read-msg "buyer") (read-keyset 'buyer-guard) 180.0)
+
+(env-data
+  { 'quote: {
+      'price: 90.0
+    , 'recipient: "buyer-acct-5"
+    , 'recipient-guard: {'keys: ["buyer-acct-5"], 'pred: 'keys-all}
+    }})
+
+(env-sigs [
+  { 'key: 'buyer-acct-5
+  , 'caps: [(marmalade.ledger.OFFER "ir-token-3" "buyer-acct-5" 1.0 200)]
+  }])
+
+(expect "offer succeeds"
+  true
+  (sale "ir-token-3" "buyer-acct-5" 1.0 200))
+
+(expect "offer events"
+  [ {"name": "coin.TRANSFER","params": ["" "buyer-acct-6" 180.0]}
+    {"name": "marmalade.ledger.OFFER","params": ["ir-token-3" "buyer-acct-5" 1.0 200]}
+    {"name": "marmalade.ledger.SALE","params": ["ir-token-3" "buyer-acct-5" 1.0 200 (hash "sale-token-3-4")]}
+    {"name": "imm-rec.policy.QUOTE","params": [(hash "sale-token-3-4") "ir-token-3" "buyer-acct-5" 1.0 90.0 90.0]}
+    {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-3" (sale-account) (create-pact-guard 'SALE)]}
+    {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-3" "buyer-acct-5" (sale-account) 1.0]}
+    {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-3" 1.0 {"account": "buyer-acct-5","current": 0.0,"previous": 1.0} {"account": (sale-account),"current": 1.0,"previous": 0.0}]}]
+    (map (remove 'module-hash) (env-events true)))
+
+(env-data
+  { 'buyer: "buyer-acct-6"
+  , 'buyer-guard: {'keys: ["buyer-acct-6"], 'pred: 'keys-all}
+  }
+)
+
+(env-sigs [
+  {'key: 'buyer-acct-6
+  ,'caps: [
+     (marmalade.ledger.BUY "ir-token-3" "buyer-acct-5" "buyer-acct-6" 1.0 200 (hash "sale-token-3-4"))
+      (coin.TRANSFER "buyer-acct-6" "buyer-acct-4" 3.0)
+      (coin.TRANSFER "buyer-acct-6" "buyer-acct-3" 3.0)
+      (coin.TRANSFER "buyer-acct-6" "buyer-acct-2" 3.0)
+      (coin.TRANSFER "buyer-acct-6" "buyer-acct-5" 81.0)
+     ]
+  }])
+
+(env-gasmodel "table")
+(env-gaslimit 100000)
+(env-gas 0)
+(env-gaslog)
+
+(expect "buy succeeds"
+  true
+  (continue-pact 1))
+
+(expect "Gas Estimate of Buy"
+  "TOTAL: 45125"
+  (at 0 (env-gaslog))
+)
+
+(env-data
+  { 'seller-guard: {'keys: ["buyer-acct-5"], 'pred: 'keys-all}
+  , 'buyer-guard: {'keys: ["buyer-acct-6"], 'pred: 'keys-all}
+  }
+)
+
+(expect "buy events"
+  [ {"name": "marmalade.ledger.BUY","params": ["ir-token-3" "buyer-acct-5" "buyer-acct-6" 1.0 200 (hash "sale-token-3-4")]}
+    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-3" "buyer-acct-5" (read-keyset 'seller-guard) 0]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-6" "buyer-acct-2" 1.500000000000]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-6" "buyer-acct-3" 1.500000000000]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-6" "buyer-acct-2" 1.500000000000]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-6" "buyer-acct-4" 3.000000000000]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-6" "buyer-acct-3" 1.500000000000]}
+    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-3" "buyer-acct-6" (read-keyset 'buyer-guard) 1]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-6" "buyer-acct-5" 81.0]}
+    {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-3" "buyer-acct-6" (read-keyset 'buyer-guard)]}
+    {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-3" (sale-account) "buyer-acct-6" 1.0]}
+    {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-3" 1.0 {"account": (sale-account),"current": 0.0,"previous": 1.0} {"account": "buyer-acct-6","current": 1.0,"previous": 0.0}]}]
+  (map (remove 'module-hash) (env-events true)))
+
+(commit-tx)
+
+;;
+;; mint token 4
+;;
+
+(begin-tx "mint token 4")
+(use imm-rec.policy)
+(use marmalade.ledger)
+
+(env-data
+ { 'mint-acct: 'mint-acct-4
+  ,'mint-acct-keyset: ["mint-acct-4"]
+})
+
+(env-sigs
+  [{'key:'ir-admin
+   ,'caps: [
+     (marmalade.ledger.MINT "ir-token-4" "mint-acct-4" 10.0)
+     ]}])
+
+(expect "mint succeeds without existing mint-acct-4 coin account"
+  true
+  (mint "ir-token-4" "mint-acct-4" (read-keyset 'mint-acct-keyset) 10.0))
+
+(expect "mint events"
+  [ {"name": "marmalade.ledger.MINT","params": ["ir-token-4" "mint-acct-4" 10.0]}
+    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-4" "mint-acct-4" (read-keyset 'mint-acct-keyset) 0]}
+    {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-4" "mint-acct-4" (read-keyset 'mint-acct-keyset )]}
+    {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-4" 10.0 {"account": "","current": 0.0,"previous": 0.0} {"account": "mint-acct-4","current": 10.0,"previous": 0.0}]}
+    {"name": "marmalade.ledger.SUPPLY","params": ["ir-token-4" 10.0]}]
+    (map (remove 'module-hash) (env-events true)))
+
+(commit-tx)
+
+;;
+;; sale token 4
+;; buyer-acct-2 owns 1/1 of token 1 - 2.142857142857 royalty
+;; buyer-acct-2 owns 1/2 of token 2 - 2.142857142857 royalty
+;; buyer-acct-3 owns 1/2 of token 2 - 2.142857142857 royalty
+;; buyer-acct-4 owns 2/4 of token 3 - 4.285714285714 royalty
+;; buyer-acct-3 owns 1/4 of token 3 - 2.142857142857 royalty
+;; buyer-acct-6 owns 1/4 of token 3 - 2.142857142857 royalty
+;; 5/10 token 4 is sold from mint-acct-4 to buyer-acct-7
+;;
+
+(begin-tx "sale token 4")
+(env-hash (hash "sale-token-4"))
+(use imm-rec.policy)
+(use marmalade.ledger)
+
+(env-data
+  { 'buyer: "buyer-acct-7"
+  , 'buyer-guard: ["buyer-acct-7"]
+  , 'mint-recipient: "mint-recipient-4"
+  , 'mint-recipient-guard: ["mint-recipient-4"] })
+
+(test-capability (coin.COINBASE))
+(coin.coinbase (read-msg "buyer") (read-keyset 'buyer-guard) 150.0)
+(coin.create-account (read-msg "mint-recipient") (read-keyset 'mint-recipient-guard))
+
+(env-data
+  { 'quote: {
+      'price: 30.0
+    , 'recipient: "mint-recipient-4"
+    , 'recipient-guard: {'keys: ["mint-recipient-4"], 'pred: 'keys-all}
+    }})
+
+(env-sigs [
+  { 'key: 'mint-acct-4
+  , 'caps: [(marmalade.ledger.OFFER "ir-token-4" "mint-acct-4" 5.0 200)]
+  }])
+
+(expect "offer succeeds"
+  true
+  (sale "ir-token-4" "mint-acct-4" 5.0 200))
+
+(expect "offer events"
+  [ {"name": "coin.TRANSFER","params": ["" "buyer-acct-7" 150.0]}
+    {"name": "marmalade.ledger.OFFER","params": ["ir-token-4" "mint-acct-4" 5.0 200]}
+    {"name": "marmalade.ledger.SALE","params": ["ir-token-4" "mint-acct-4" 5.0 200 (hash "sale-token-4")]}
+    {"name": "imm-rec.policy.QUOTE","params": [(hash "sale-token-4") "ir-token-4" "mint-recipient-4" 5.0 30.0 150.0]}
+    {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-4" (sale-account) (create-pact-guard 'SALE)]}
+    {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-4" "mint-acct-4" (sale-account) 5.0]}
+    {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-4" 5.0 {"account": "mint-acct-4","current": 5.0,"previous": 10.0} {"account": (sale-account),"current": 5.0,"previous": 0.0}]}]
+  (map (remove 'module-hash) (env-events true)))
+
+(env-data
+  { 'buyer: "buyer-acct-7"
+  , 'buyer-guard: {'keys: ["buyer-acct-7"], 'pred: 'keys-all}
+  }
+)
+
+(env-sigs [
+  {'key: 'buyer-acct-7
+  ,'caps: [
+    (marmalade.ledger.BUY "ir-token-4" "mint-acct-4" "buyer-acct-7" 5.0 200 (hash "sale-token-4"))
+    (coin.TRANSFER "buyer-acct-7" "buyer-acct-4" 4.285714285714)
+    (coin.TRANSFER "buyer-acct-7" "buyer-acct-2" 4.285714285714)
+    (coin.TRANSFER "buyer-acct-7" "buyer-acct-3" 4.285714285714)
+    (coin.TRANSFER "buyer-acct-7" "buyer-acct-6" 2.142857142857)
+    (coin.TRANSFER "buyer-acct-7" "mint-recipient-4" 135.0)
+   ]
+  }])
+
+(env-gasmodel "table")
+(env-gaslimit 50000)
+(env-gas 0)
+(env-gaslog)
+
+(expect "buy succeeds"
+  true
+  (continue-pact 1))
+
+(expect "Gas Estimate of Buy"
+  "TOTAL: 44966"
+  (at 0 (env-gaslog))
+)
+
+(expect "buy events"
+  [ {"name": "marmalade.ledger.BUY","params": ["ir-token-4" "mint-acct-4" "buyer-acct-7" 5.0 200 (hash "sale-token-4")]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-7" "buyer-acct-2" 2.142857142857]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-7" "buyer-acct-3" 2.142857142857]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-7" "buyer-acct-2" 2.142857142857]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-7" "buyer-acct-6" 2.142857142857]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-7" "buyer-acct-4" 4.285714285714]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-7" "buyer-acct-3" 2.142857142857]}
+    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-4" "buyer-acct-7" (read-keyset 'buyer-guard) 5]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-7" "mint-recipient-4" 135.0]}
+    {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-4" "buyer-acct-7" (read-keyset 'buyer-guard)]}
+    {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-4" (sale-account) "buyer-acct-7" 5.0]}
+    {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-4" 5.0 {"account": (sale-account),"current": 0.0,"previous": 5.0} {"account": "buyer-acct-7","current": 5.0,"previous": 0.0}]}]
+  (map (remove 'module-hash) (env-events true)))
+
+(commit-tx)
+
+;;
+;; sale token 4-1
+;; buyer-acct-2 owns 1/1 of token 1 - 1.0 royalty
+;; buyer-acct-2 owns 1/2 of token 2 - 1.0 royalty
+;; buyer-acct-3 owns 1/2 of token 2 - 1.0 royalty
+;; buyer-acct-4 owns 2/4 of token 3 - 2.0 royalty
+;; buyer-acct-3 owns 1/4 of token 3 - 1.0 royalty
+;; buyer-acct-6 owns 1/4 of token 3 - 1.0 royalty (not paid )
+;; buyer-acct-7 owns 2/10 of token 4 - 2.0 royalty
+;; FAILURE: 3/10 token 4 is sold from buyer-acct-7 to mint-acct-3
+;; SUCCESS: 3/10 token 4 is sold from buyer-acct-7 to buyer-acct-6
+
+(begin-tx "sale token 4-1")
+(env-hash (hash "sale-token-4-1"))
+(use imm-rec.policy)
+(use marmalade.ledger)
+
+(env-data
+  { 'buyer: "mint-acct-4"
+  , 'buyer-guard: ["mint-acct-4"]
+  , 'buyer1: "buyer-acct-6"
+  , 'buyer-guard1: ["buyer-acct-6"]})
+
+(test-capability (coin.COINBASE))
+(coin.coinbase (read-msg "buyer") (read-keyset 'buyer-guard) 150.0)
+(coin.coinbase (read-msg "buyer1") (read-keyset 'buyer-guard1) 150.0)
+
+(env-data
+  { 'quote: {
+      'price: 30.0
+    , 'recipient: "buyer-acct-7"
+    , 'recipient-guard: {'keys: ["buyer-acct-7"], 'pred: 'keys-all}
+    }})
+
+(env-sigs [
+  { 'key: 'buyer-acct-7
+  , 'caps: [(marmalade.ledger.OFFER "ir-token-4" "buyer-acct-7" 3.0 200)]
+  }])
+
+(expect "offer succeeds"
+  true
+  (sale "ir-token-4" "buyer-acct-7" 3.0 200))
+
+(expect "offer events"
+  [ {"name": "coin.TRANSFER","params": ["" "mint-acct-4" 150.0]}
+    {"name": "coin.TRANSFER","params": ["" "buyer-acct-6" 150.0]}
+    {"name": "marmalade.ledger.OFFER","params": ["ir-token-4" "buyer-acct-7" 3.0 200]}
+    {"name": "marmalade.ledger.SALE","params": ["ir-token-4" "buyer-acct-7" 3.0 200 (hash "sale-token-4-1")]}
+    {"name": "imm-rec.policy.QUOTE","params": [(hash "sale-token-4-1") "ir-token-4" "buyer-acct-7" 3.0 30.0 90.0]}
+    {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-4" (sale-account) (create-pact-guard 'SALE)]}
+    {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-4" "buyer-acct-7" (sale-account) 3.0]}
+    {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-4" 3.0 {"account": "buyer-acct-7","current": 2.0,"previous": 5.0} {"account": (sale-account),"current": 3.0,"previous": 0.0}]}]
+    (map (remove 'module-hash) (env-events true)))
+
+(env-data
+  { 'buyer: "mint-acct-4"
+  , 'buyer-guard: {'keys: ["mint-acct-4"], 'pred: 'keys-all}
+  }
+)
+
+(env-sigs [
+  {'key: 'mint-acct-4
+  ,'caps: [
+      (marmalade.ledger.BUY "ir-token-4" "buyer-acct-7" "mint-acct-4" 3.0 200 (hash "sale-token-4-1"))
+      (coin.TRANSFER "mint-acct-4" "buyer-acct-7" 83.0)
+      (coin.TRANSFER "mint-acct-4" "buyer-acct-4" 2.0)
+      (coin.TRANSFER "mint-acct-4" "buyer-acct-2" 2.0)
+      (coin.TRANSFER "mint-acct-4" "buyer-acct-6" 1.0)
+      (coin.TRANSFER "mint-acct-4" "buyer-acct-3" 2.0)
+     ]
+  }])
+
+(expect-failure "buy fails - mint account cannot rebuy its tokens before selling all of initially minted tokens"
+  "Partial owner is restricted from buying"
+  (continue-pact 1))
+
+(env-data
+  { 'buyer: "buyer-acct-6"
+  , 'buyer-guard: {'keys: ["buyer-acct-6"], 'pred: 'keys-all}
+  }
+)
+
+(env-sigs [
+  {'key: 'buyer-acct-6
+  ,'caps: [
+      (marmalade.ledger.BUY "ir-token-4" "buyer-acct-7" "buyer-acct-6" 3.0 200 (hash "sale-token-4-1"))
+      (coin.TRANSFER "buyer-acct-6" "buyer-acct-7" 83.0)
+      (coin.TRANSFER "buyer-acct-6" "buyer-acct-4" 2.0)
+      (coin.TRANSFER "buyer-acct-6" "buyer-acct-2" 2.0)
+      (coin.TRANSFER "buyer-acct-6" "buyer-acct-3" 2.0)
+     ]
+  }])
+
+(env-gasmodel "table")
+(env-gaslimit 50000)
+(env-gas 0)
+(env-gaslog)
+
+(expect "buy succeeds"
+  true
+  (continue-pact 1))
+
+(expect "Gas Estimate of Buy"
+  "TOTAL: 45420"
+  (at 0 (env-gaslog))
+)
+
+(env-data
+  { 'seller-guard: {'keys: ["buyer-acct-7"], 'pred: 'keys-all}
+  , 'buyer-guard: {'keys: ["buyer-acct-6"], 'pred: 'keys-all}}
+)
+
+(expect "buy events"
+  [{"name": "marmalade.ledger.BUY","params": ["ir-token-4" "buyer-acct-7" "buyer-acct-6" 3.0 200 (hash "sale-token-4-1")]}
+    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-4" "buyer-acct-7" (read-keyset 'seller-guard) 2]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-6" "buyer-acct-2" 1.000000000000]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-6" "buyer-acct-3" 1.000000000000]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-6" "buyer-acct-2" 1.000000000000]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-6" "buyer-acct-4" 2.000000000000]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-6" "buyer-acct-3" 1.000000000000]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-6" "buyer-acct-7" 2.000000000000]}
+    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-4" "buyer-acct-6" (read-keyset 'buyer-guard) 3]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-6" "buyer-acct-7" 81.0]}
+    {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-4" "buyer-acct-6" (read-keyset 'buyer-guard)]}
+    {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-4" (sale-account) "buyer-acct-6" 3.0]}
+    {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-4" 3.0 {"account": (sale-account),"current": 0.0,"previous": 3.0} {"account": "buyer-acct-6","current": 3.0,"previous": 0.0}]}]
+  (map (remove 'module-hash) (env-events true)))
+
+(commit-tx)
+
+;; sale token 4-2
+;; buyer-acct-2 owns 1/1 of token 1 - 1.25 royalty
+;; buyer-acct-2 owns 1/2 of token 2 - 1.25 royalty
+;; buyer-acct-3 owns 1/2 of token 2 - 1.25 royalty
+;; buyer-acct-4 owns 2/4 of token 3 - 2.5 royalty
+;; buyer-acct-3 owns 1/4 of token 3 - 1.25 royalty
+;; buyer-acct-6 owns 1/4 of token 3 - 1.25 royalty
+;; buyer-acct-7 owns 2/10 of token 4 - 2.5 royalty
+;; buyer-acct-6 owns 3/10 of token 4 - 3.75 royalty
+;; 5/10 token 4 is sold from mint-acct-3 to buyer-acct-1
+
+(begin-tx "sale token 4-2")
+(env-hash (hash "sale-token-4-2"))
+(use imm-rec.policy)
+(use marmalade.ledger)
+
+(env-data
+  { 'buyer: "buyer-acct-1"
+  , 'buyer-guard: ["buyer-acct-1"]})
+
+(test-capability (coin.COINBASE))
+(coin.coinbase (read-msg "buyer") (read-keyset 'buyer-guard) 150.0)
+
+(env-data
+  { 'quote: {
+      'price: 30.0
+    , 'recipient: "mint-recipient-4"
+    , 'recipient-guard: {'keys: ["mint-recipient-4"], 'pred: 'keys-all}
+    }})
+
+(env-sigs [
+  { 'key: 'mint-acct-4
+  , 'caps: [(marmalade.ledger.OFFER "ir-token-4" "mint-acct-4" 5.0 200)]
+  }])
+
+(expect "offer succeeds"
+  true
+  (sale "ir-token-4" "mint-acct-4" 5.0 200))
+
+(expect "offer events"
+   [{"name": "coin.TRANSFER","params": ["" "buyer-acct-1" 150.0]}
+    {"name": "marmalade.ledger.OFFER","params": ["ir-token-4" "mint-acct-4" 5.0 200]}
+    {"name": "marmalade.ledger.SALE","params": ["ir-token-4" "mint-acct-4" 5.0 200 (hash "sale-token-4-2")]}
+    {"name": "imm-rec.policy.QUOTE","params": [(hash "sale-token-4-2") "ir-token-4" "mint-recipient-4" 5.0 30.0 150.0]}
+    {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-4" (sale-account) (create-pact-guard 'SALE)]}
+    {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-4" "mint-acct-4" (sale-account) 5.0]}
+    {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-4" 5.0 {"account": "mint-acct-4","current": 0.0,"previous": 5.0} {"account": (sale-account),"current": 5.0,"previous": 0.0}]}]
+  (map (remove 'module-hash) (env-events true)))
+
+(env-data
+  { 'buyer: 'buyer-acct-1
+  , 'buyer-guard: {'keys: ['buyer-acct-1], 'pred: 'keys-all}
+  }
+)
+
+(env-sigs [
+  {'key: 'buyer-acct-1
+  ,'caps: [
+      (marmalade.ledger.BUY "ir-token-4" "mint-acct-4" "buyer-acct-1" 5.0 200 (hash "sale-token-4-2"))
+      (coin.TRANSFER "buyer-acct-1" "buyer-acct-7" 2.5)
+      (coin.TRANSFER "buyer-acct-1" "buyer-acct-6" 5.0)
+      (coin.TRANSFER "buyer-acct-1" "buyer-acct-4" 2.5)
+      (coin.TRANSFER "buyer-acct-1" "buyer-acct-2" 2.5)
+      (coin.TRANSFER "buyer-acct-1" "buyer-acct-3" 2.5)
+      (coin.TRANSFER "buyer-acct-1" "mint-recipient-4" 135.0)
+     ]
+  }])
+
+(env-gasmodel "table")
+(env-gaslimit 50000)
+(env-gas 0)
+(env-gaslog)
+
+(expect "buy succeeds"
+  true
+  (continue-pact 1))
+
+(expect "Gas Estimate of Buy"
+  "TOTAL: 46287"
+  (at 0 (env-gaslog))
+)
+
+(expect "buy events"
+  [{"name": "marmalade.ledger.BUY","params": ["ir-token-4" "mint-acct-4" "buyer-acct-1" 5.0 200 (hash "sale-token-4-2")]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-1" "buyer-acct-2" 1.250000000000]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-1" "buyer-acct-3" 1.250000000000]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-1" "buyer-acct-2" 1.250000000000]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-1" "buyer-acct-6" 1.250000000000]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-1" "buyer-acct-4" 2.500000000000]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-1" "buyer-acct-3" 1.250000000000]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-1" "buyer-acct-6" 3.750000000000]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-1" "buyer-acct-7" 2.500000000000]}
+    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-4" "buyer-acct-1" (read-keyset 'buyer-guard) 5]}
+    {"name": "coin.TRANSFER","params": ["buyer-acct-1" "mint-recipient-4" 135.0]}
+    {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-4" "buyer-acct-1" (read-keyset 'buyer-guard)]}
+    {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-4" (sale-account) "buyer-acct-1" 5.0]}
+    {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-4" 5.0 {"account": (sale-account),"current": 0.0,"previous": 5.0} {"account": "buyer-acct-1","current": 5.0,"previous": 0.0}]}]
+  (map (remove 'module-hash) (env-events true)))
+
+(commit-tx)
+
+;; sale token 4-3
+;; buyer-acct-2 owns 1/1 of token 1 - 0.642857142857 royalty
+;; buyer-acct-2 owns 1/2 of token 2 - 0.642857142857 royalty
+;; buyer-acct-3 owns 1/2 of token 2 - 0.642857142857 royalty
+;; buyer-acct-4 owns 2/4 of token 3 - 1.285714285714 royalty
+;; buyer-acct-3 owns 1/4 of token 3 - 0.642857142857 royalty
+;; buyer-acct-6 owns 1/4 of token 3 - 0.642857142857 royalty
+;; buyer-acct-7 owns 2/10 of token 4 - 1.285714285714 royalty
+;; buyer-acct-1 owns 5/10 of token 4 - 3.214285714285 royalty
+;; 3/10 token 4 is sold from buyer-acct-6 to mint-acct-3
+
+(begin-tx "sale token 4-3")
+(env-hash (hash "sale-token-4-3"))
+(use imm-rec.policy)
+(use marmalade.ledger)
+
+
+(env-data
+  { 'quote: {
+      'price: 30.0
+    , 'recipient: "buyer-acct-6"
+    , 'recipient-guard: {'keys: ["buyer-acct-6"], 'pred: 'keys-all}
+    }})
+
+(env-sigs [
+  { 'key: 'buyer-acct-6
+  , 'caps: [(marmalade.ledger.OFFER "ir-token-4" "buyer-acct-6" 3.0 200)]
+  }])
+
+(expect "offer succeeds"
+  true
+  (sale "ir-token-4" "buyer-acct-6" 3.0 200))
+
+(expect "offer events"
+  [{"name": "marmalade.ledger.OFFER","params": ["ir-token-4" "buyer-acct-6" 3.0 200]}
+    {"name": "marmalade.ledger.SALE","params": ["ir-token-4" "buyer-acct-6" 3.0 200 (hash "sale-token-4-3")]}
+    {"name": "imm-rec.policy.QUOTE","params": [(hash "sale-token-4-3") "ir-token-4" "buyer-acct-6" 3.0 30.0 90.0]}
+    {"name": "marmalade.ledger.ACCOUNT_GUARD","params": ["ir-token-4" (sale-account) (create-pact-guard 'SALE)]}
+    {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-4" "buyer-acct-6" (sale-account) 3.0]}
+    {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-4" 3.0 {"account": "buyer-acct-6","current": 0.0,"previous": 3.0} {"account": (sale-account),"current": 3.0,"previous": 0.0}]}]
+  (map (remove 'module-hash) (env-events true)))
+
+(env-data
+  { 'buyer: 'mint-acct-4
+  , 'buyer-guard: {'keys: ['mint-acct-4], 'pred: 'keys-all}
+  }
+)
+
+(env-sigs [
+  {'key: 'mint-acct-4
+  ,'caps: [
+      (marmalade.ledger.BUY "ir-token-4" "buyer-acct-6" "mint-acct-4" 3.0 200 (hash "sale-token-4-3"))
+      (coin.TRANSFER "mint-acct-4" "buyer-acct-7" 1.285714285714)
+      (coin.TRANSFER "mint-acct-4" "buyer-acct-4" 1.285714285714)
+      (coin.TRANSFER "mint-acct-4" "buyer-acct-2" 1.285714285714)
+      (coin.TRANSFER "mint-acct-4" "buyer-acct-3" 1.285714285714)
+      (coin.TRANSFER "mint-acct-4" "buyer-acct-1" 3.214285714285)
+      (coin.TRANSFER "mint-acct-4" "buyer-acct-6" 81.642857142857)
+     ]
+  }])
+
+(env-gasmodel "table")
+(env-gaslimit 50000)
+(env-gas 0)
+(env-gaslog)
+
+(expect "buy succeeds"
+  true
+  (continue-pact 1))
+
+(expect "Gas Estimate of Buy"
+  "TOTAL: 46782"
+  (at 0 (env-gaslog))
+)
+
+(env-data
+  { 'seller-guard: {'keys: ["buyer-acct-6"], 'pred: 'keys-all}
+  , 'buyer-guard: {'keys: ["mint-acct-4"], 'pred: 'keys-all}}
+)
+
+(expect "buy events"
+  [{"name": "marmalade.ledger.BUY","params": ["ir-token-4" "buyer-acct-6" "mint-acct-4" 3.0 200 (hash "sale-token-4-3")]}
+    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-4" "buyer-acct-6" (read-keyset 'seller-guard) 0]}
+    {"name": "coin.TRANSFER","params": ["mint-acct-4" "buyer-acct-2" 0.642857142857]}
+    {"name": "coin.TRANSFER","params": ["mint-acct-4" "buyer-acct-3" 0.642857142857]}
+    {"name": "coin.TRANSFER","params": ["mint-acct-4" "buyer-acct-2" 0.642857142857]}
+    {"name": "coin.TRANSFER","params": ["mint-acct-4" "buyer-acct-6" 0.642857142857]}
+    {"name": "coin.TRANSFER","params": ["mint-acct-4" "buyer-acct-4" 1.285714285714]}
+    {"name": "coin.TRANSFER","params": ["mint-acct-4" "buyer-acct-3" 0.642857142857]}
+    {"name": "coin.TRANSFER","params": ["mint-acct-4" "buyer-acct-1" 3.214285714285]}
+    {"name": "coin.TRANSFER","params": ["mint-acct-4" "buyer-acct-7" 1.285714285714]}
+    {"name": "imm-rec.policy.UPDATE_OWNER","params": ["ir-token-4" "mint-acct-4" (read-keyset 'buyer-guard) 3]}
+    {"name": "coin.TRANSFER","params": ["mint-acct-4" "buyer-acct-6" 81.0]}
+    {"name": "marmalade.ledger.TRANSFER","params": ["ir-token-4" (sale-account) "mint-acct-4" 3.0]}
+    {"name": "marmalade.ledger.RECONCILE","params": ["ir-token-4" 3.0 {"account": (sale-account),"current": 0.0,"previous": 3.0} {"account": "mint-acct-4","current": 3.0,"previous": 0.0}]}]
+  (map (remove 'module-hash) (env-events true)))
 
 (commit-tx)
